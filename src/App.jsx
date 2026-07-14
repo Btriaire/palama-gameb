@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Screen from './components/Screen'
 import Controls from './components/Controls'
 import Library from './components/Library'
@@ -24,6 +24,15 @@ export default function App() {
 
   const { isReady, isPlaying, currentRom, error, togglePlay, reset, saveToCloud, loadFromCloud, setJoypad } = active
   const { press, release } = useJoypad(setJoypad)
+
+  useEffect(() => {
+    // iOS Safari only applies :active styles promptly (and treats taps as
+    // fully "live") on pages with a touchstart listener. Without this,
+    // button feedback — and the resulting input — lags by ~300ms.
+    const noop = () => {}
+    document.body.addEventListener('touchstart', noop, { passive: true })
+    return () => document.body.removeEventListener('touchstart', noop)
+  }, [])
 
   const flash = (msg) => {
     setStatus(msg)
