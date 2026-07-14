@@ -16,17 +16,51 @@ export function useGba(canvasRef) {
   const [currentRom, setCurrentRom] = useState(null)
   const [error, setError] = useState(null)
 
+  const lastFrameTimeRef = useRef(0)
+
   useEffect(() => {
     if (!canvasRef.current || bridgeRef.current) return
     const bridge = new EmulatorBridge()
     bridge.setCallbacks({
       onStateChange: (s) => setIsPlaying(s === 'running'),
-      onFrame: () => {},
+      onFrame: () => { lastFrameTimeRef.current = Date.now() },
       onBreakpoint: () => {},
     })
     bridge.attachCanvas(canvasRef.current)
     bridgeRef.current = bridge
   }, [canvasRef])
+
+  // Same iOS background-stall issue as WasmBoy: gba-kit's emulation loop is
+  // a self-scheduling requestAnimationFrame chain, and the browser can just
+  // stop calling it while the tab is backgrounded — bridge.state keeps
+  // reporting "running" (nothing ever set it to paused) even though no
+  // frames are advancing. run() alone is a no-op when state already says
+  // "running", so detect true staleness via the onFrame timestamp and force
+  // a restart with pause()+run() rather than resyncing unconditionally
+  // (which would stutter healthy gameplay every second).
+  const isReadyRef = useRef(isReady)
+  isReadyRef.current = isReady
+  const isPlayingRef = useRef(isPlaying)
+  isPlayingRef.current = isPlaying
+
+  useEffect(() => {
+    const resync = () => {
+      if (document.visibilityState !== 'visible') return
+      const bridge = bridgeRef.current
+      if (!isReadyRef.current || !isPlayingRef.current || !bridge) return
+      const stalled = Date.now() - lastFrameTimeRef.current > 500
+      if (stalled) {
+        bridge.pause()
+        bridge.run()
+      }
+    }
+    document.addEventListener('visibilitychange', resync)
+    const watchdog = setInterval(resync, 1000)
+    return () => {
+      document.removeEventListener('visibilitychange', resync)
+      clearInterval(watchdog)
+    }
+  }, [])
 
   const loadRom = useCallback(async (romMeta, fileOrUrl) => {
     setError(null)

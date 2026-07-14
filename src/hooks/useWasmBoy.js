@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as WasmBoyModule from 'wasmboy'
 import { api } from '../api/client'
 import { serializeState, deserializeState } from '../utils/stateSerializer'
@@ -31,6 +31,35 @@ export function useWasmBoy(canvasRef) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentRom, setCurrentRom] = useState(null)
   const [error, setError] = useState(null)
+
+  // iOS suspends/kills WasmBoy's internal rAF loop while the tab is
+  // backgrounded (screen lock, app switch, Safari UI covering the page) —
+  // WasmBoy.isPlaying() then genuinely reports false, but nothing ever calls
+  // our pause(), so the UI still says "Pause" and looks like it should be
+  // running. Every touch registers (the button itself works fine) but
+  // nothing happens because the emulator core isn't advancing frames at
+  // all. Force a resume whenever the page becomes visible again — but only
+  // if the player didn't deliberately pause (isPlayingRef still true).
+  const isReadyRef = useRef(isReady)
+  isReadyRef.current = isReady
+  const isPlayingRef = useRef(isPlaying)
+  isPlayingRef.current = isPlaying
+
+  useEffect(() => {
+    const resync = () => {
+      if (document.visibilityState !== 'visible') return
+      if (isReadyRef.current && isPlayingRef.current && WasmBoy.isPlaying && !WasmBoy.isPlaying()) {
+        pushDebug('visibility restored: WasmBoy was stalled, forcing play()')
+        WasmBoy.play()
+      }
+    }
+    document.addEventListener('visibilitychange', resync)
+    const watchdog = setInterval(resync, 1000)
+    return () => {
+      document.removeEventListener('visibilitychange', resync)
+      clearInterval(watchdog)
+    }
+  }, [])
 
   useEffect(() => {
     if (!canvasRef.current || wasmBoyConfigPromise) return
