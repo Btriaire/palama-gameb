@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import * as WasmBoyModule from 'wasmboy'
 import { api } from '../api/client'
 import { serializeState, deserializeState } from '../utils/stateSerializer'
@@ -17,17 +17,22 @@ const CONFIG = {
   isTimersEnabled: true,
 }
 
+// Module-level (not component-level) guard: WasmBoy is a page-wide singleton,
+// and React 18 StrictMode double-mounts components in dev. A useRef guard
+// doesn't survive that remount, so config() fired twice — and WasmBoy.config()
+// re-enables the default joypad each time, silently undoing disableDefaultJoypad()
+// from the first call and re-introducing the input race.
+let wasmBoyConfigPromise = null
+
 export function useWasmBoy(canvasRef) {
   const [isReady, setIsReady] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentRom, setCurrentRom] = useState(null)
   const [error, setError] = useState(null)
-  const configuredRef = useRef(false)
 
   useEffect(() => {
-    if (!canvasRef.current || configuredRef.current) return
-    configuredRef.current = true
-    WasmBoy.config(CONFIG, canvasRef.current)
+    if (!canvasRef.current || wasmBoyConfigPromise) return
+    wasmBoyConfigPromise = WasmBoy.config(CONFIG, canvasRef.current)
       // The default joypad (keyboard/gamepad) polls every frame and overwrites
       // setJoypadState() otherwise, silently swallowing our touch/keyboard input.
       .then(() => WasmBoy.disableDefaultJoypad())

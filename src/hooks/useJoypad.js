@@ -1,21 +1,23 @@
 import { useEffect, useRef } from 'react'
 
-const EMPTY_STATE = { up: false, right: false, down: false, left: false, a: false, b: false, select: false, start: false }
+// WasmBoy's setJoypadState reads UPPERCASE keys (a.UP, a.A, ...) — anything
+// else silently evaluates to "not pressed" for every button.
+const EMPTY_STATE = { UP: false, RIGHT: false, DOWN: false, LEFT: false, A: false, B: false, SELECT: false, START: false }
 
 const KEY_MAP = {
-  ArrowUp: 'up',
-  ArrowRight: 'right',
-  ArrowDown: 'down',
-  ArrowLeft: 'left',
-  KeyW: 'up',
-  KeyD: 'right',
-  KeyS: 'down',
-  KeyA: 'left',
-  KeyX: 'a',
-  KeyZ: 'b',
-  Enter: 'start',
-  ShiftRight: 'select',
-  ShiftLeft: 'select',
+  ArrowUp: 'UP',
+  ArrowRight: 'RIGHT',
+  ArrowDown: 'DOWN',
+  ArrowLeft: 'LEFT',
+  KeyW: 'UP',
+  KeyD: 'RIGHT',
+  KeyS: 'DOWN',
+  KeyA: 'LEFT',
+  KeyX: 'A',
+  KeyZ: 'B',
+  Enter: 'START',
+  ShiftRight: 'SELECT',
+  ShiftLeft: 'SELECT',
 }
 
 // Single source of truth for joypad state — touch buttons and keyboard both
