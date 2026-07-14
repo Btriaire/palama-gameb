@@ -2,6 +2,10 @@ export default function Controls({ press, release, disabled }) {
   const guardedPress = (key) => (e) => {
     e.preventDefault()
     if (disabled) return
+    // Capture the pointer so a finger drifting slightly off the button
+    // (very common on small touch targets) doesn't fire pointerleave
+    // and cancel the press before pointerup ever arrives.
+    e.currentTarget.setPointerCapture?.(e.pointerId)
     press(key)
   }
 
@@ -13,7 +17,6 @@ export default function Controls({ press, release, disabled }) {
   const dpadHandlers = (key) => ({
     onPointerDown: guardedPress(key),
     onPointerUp: guardedRelease(key),
-    onPointerLeave: guardedRelease(key),
     onPointerCancel: guardedRelease(key),
   })
 
