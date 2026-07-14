@@ -346,3 +346,24 @@ body {
   background: #2c2b32; border: 1px solid #55525f; padding: .5rem 1rem;
   border-radius: 8px; font-size: .8rem;
 }
+
+/* Temporary on-screen diagnostic panel — remove once the touch bug is found. */
+.debug-panel {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 999;
+  background: rgba(0,0,0,.92);
+  color: #6f6;
+  font-family: 'SF Mono', Menlo, monospace;
+  max-height: 40vh;
+  display: flex;
+  flex-direction: column;
+}
+.debug-toggle {
+  background: #111; color: #6f6; border: none; border-top: 1px solid #333;
+  padding: .5rem; font-size: .75rem; text-align: left;
+}
+.debug-lines {
+  margin: 0; padding: .5rem; overflow-y: auto; font-size: .62rem; line-height: 1.4;
+  white-space: pre-wrap; word-break: break-all;
+}

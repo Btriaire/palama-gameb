@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { pushDebug } from '../utils/debugLog'
 
 // WasmBoy's setJoypadState reads UPPERCASE keys (a.UP, a.A, ...) — anything
 // else silently evaluates to "not pressed" for every button. L/R only apply
@@ -41,11 +42,13 @@ export function useJoypad(setJoypad) {
   }
 
   const press = useCallback((key) => {
+    pushDebug(`press(${key})`)
     pressedRef.current.add(key)
     sync()
   }, [])
 
   const release = useCallback((key) => {
+    pushDebug(`release(${key})`)
     pressedRef.current.delete(key)
     sync()
   }, [])
@@ -79,8 +82,13 @@ export function useJoypad(setJoypad) {
   // current state means our write is always the most recent one.
   useEffect(() => {
     let frameId
+    let frameCount = 0
     const loop = () => {
-      if (pressedRef.current.size > 0) sync()
+      frameCount++
+      if (pressedRef.current.size > 0) {
+        sync()
+        if (frameCount % 30 === 0) pushDebug(`rAF loop alive, pressed=[${[...pressedRef.current]}]`)
+      }
       frameId = requestAnimationFrame(loop)
     }
     frameId = requestAnimationFrame(loop)

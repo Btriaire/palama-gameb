@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { pushDebug } from '../utils/debugLog'
 
 // Native Touch Events (not Pointer Events) — the oldest, most consistently
 // implemented input API on mobile Safari. Pointer Events + setPointerCapture
@@ -17,12 +18,14 @@ function usePressable(key, press, release, disabled) {
 
     const onTouchStart = (e) => {
       e.preventDefault()
+      pushDebug(`touchstart ${key} disabled=${disabledRef.current}`)
       if (disabledRef.current) return
       touchIdRef.current = e.changedTouches[0].identifier
       press(key)
     }
     const onTouchEnd = (e) => {
       e.preventDefault()
+      pushDebug(`touchend/cancel ${key} type=${e.type}`)
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === touchIdRef.current) {
           touchIdRef.current = null
@@ -43,6 +46,8 @@ function usePressable(key, press, release, disabled) {
     }
     const onContextMenu = (e) => e.preventDefault()
 
+    if (key === 'UP') pushDebug('listeners attached (UP)')
+
     el.addEventListener('touchstart', onTouchStart, { passive: false })
     el.addEventListener('touchend', onTouchEnd, { passive: false })
     el.addEventListener('touchcancel', onTouchEnd, { passive: false })
@@ -51,6 +56,7 @@ function usePressable(key, press, release, disabled) {
     window.addEventListener('mouseup', onMouseUp)
 
     return () => {
+      if (key === 'UP') pushDebug('listeners TORN DOWN (UP)')
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchend', onTouchEnd)
       el.removeEventListener('touchcancel', onTouchEnd)
