@@ -62,7 +62,7 @@ body {
 
 .library-panel {
   width: 100%;
-  max-height: 82vh;
+  max-height: 55vh;
   background: #232228;
   border-radius: 20px 20px 0 0;
   transform: translateY(100%);
@@ -79,7 +79,7 @@ body {
 @media (min-width: 900px) {
   .library-backdrop { display: none; }
   .library-panel {
-    width: 320px;
+    width: 260px;
     max-height: none;
     position: relative;
     border-radius: 0;
@@ -87,7 +87,7 @@ body {
     transform: none;
     bottom: auto; left: auto; right: auto;
     box-shadow: none;
-    padding: 1.25rem;
+    padding: 1rem;
   }
   .library-panel:not(.open) { display: none; }
   .gb-library-drag, .gb-library-close { display: none; }
@@ -98,50 +98,53 @@ body {
   background: #45434c;
   margin: 0 auto .75rem;
 }
-.gb-library-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-.gb-library-header h2 { margin: 0; font-size: 1.1rem; }
+.gb-library-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
+.gb-library-header h2 { margin: 0; font-size: .95rem; }
 .gb-library-close {
   background: #2c2b32; color: #eee; border: none;
-  width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; line-height: 1;
+  width: 26px; height: 26px; border-radius: 50%; font-size: 1rem; line-height: 1;
   cursor: pointer;
 }
 
 .gb-dropzone {
   width: 100%;
-  display: flex; flex-direction: column; align-items: center; gap: .3rem;
-  background: #2c2b32; border: 1.5px dashed #4a4753; border-radius: 12px;
-  padding: 1.1rem; margin-bottom: 1rem;
+  display: flex; flex-direction: column; align-items: center; gap: .2rem;
+  background: #2c2b32; border: 1.5px dashed #4a4753; border-radius: 10px;
+  padding: .65rem; margin-bottom: .6rem;
   color: #eee; cursor: pointer;
   transition: background .15s, border-color .15s;
 }
-.gb-dropzone span { font-size: .9rem; font-weight: 600; }
-.gb-dropzone small { color: #999; font-size: .75rem; }
+.gb-dropzone svg { width: 20px; height: 20px; }
+.gb-dropzone span { font-size: .8rem; font-weight: 600; }
+.gb-dropzone small { color: #999; font-size: .68rem; }
 .gb-dropzone.drag-over, .gb-dropzone:hover { background: #35333c; border-color: var(--ab-red); }
 .gb-dropzone.busy { opacity: .6; pointer-events: none; }
-.gb-error { color: #ff8080; font-size: .8rem; margin: 0 0 .75rem; }
+.gb-error { color: #ff8080; font-size: .75rem; margin: 0 0 .5rem; }
 
 .gb-library-empty {
-  display: flex; flex-direction: column; align-items: center; gap: .6rem;
-  color: #777; text-align: center; padding: 1.5rem 0; font-size: .85rem;
+  display: flex; flex-direction: column; align-items: center; gap: .4rem;
+  color: #777; text-align: center; padding: .75rem 0; font-size: .78rem;
+}
+.gb-library-empty svg { width: 28px; height: 28px;
 }
 
-.gb-rom-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
+.gb-rom-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; }
 .gb-rom-list li {
-  display: flex; align-items: center; gap: .7rem;
-  background: #2c2b32; border-radius: 10px; padding: .6rem .7rem;
+  display: flex; align-items: center; gap: .5rem;
+  background: #2c2b32; border-radius: 8px; padding: .4rem .5rem;
   cursor: pointer;
 }
 .gb-rom-list li:hover { background: #35333c; }
 .gb-rom-list li.active { outline: 1px solid var(--ab-red); background: #3a2c32; }
 .rom-cartridge {
   flex: none;
-  width: 38px; height: 38px; border-radius: 8px;
+  width: 30px; height: 30px; border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
-  color: rgba(0,0,0,.55); font-weight: 800; font-size: .75rem;
+  color: rgba(0,0,0,.55); font-weight: 800; font-size: .65rem;
 }
 .rom-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.rom-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; }
-.rom-meta { color: #888; font-size: .7rem; }
+.rom-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .78rem; }
+.rom-meta { color: #888; font-size: .65rem; }
 .rom-delete {
   flex: none;
   background: none; border: none; color: #999; cursor: pointer;
