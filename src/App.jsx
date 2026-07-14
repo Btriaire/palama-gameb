@@ -6,6 +6,7 @@ import DebugPanel from './components/DebugPanel'
 import { useWasmBoy } from './hooks/useWasmBoy'
 import { useGba } from './hooks/useGba'
 import { useJoypad } from './hooks/useJoypad'
+import { useWakeLock } from './hooks/useWakeLock'
 import './App.scss'
 
 function coreForFile(name) {
@@ -25,6 +26,7 @@ export default function App() {
 
   const { isReady, isPlaying, currentRom, error, togglePlay, reset, saveToCloud, loadFromCloud, setJoypad } = active
   const { press, release } = useJoypad(setJoypad)
+  useWakeLock(isPlaying)
 
   useEffect(() => {
     // iOS Safari only applies :active styles promptly (and treats taps as

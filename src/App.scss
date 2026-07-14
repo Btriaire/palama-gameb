@@ -70,7 +70,7 @@ body {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   z-index: 20;
-  padding: .6rem 1.25rem 1.5rem;
+  padding: .6rem 1.25rem max(1.5rem, env(safe-area-inset-bottom));
   overflow-y: auto;
   box-shadow: 0 -10px 40px rgba(0,0,0,.5);
 }
@@ -161,6 +161,13 @@ body {
   justify-content: center;
   position: relative;
   padding: 1.5rem;
+  /* Keep controls clear of the notch/Dynamic Island and home-indicator bar,
+     especially in standalone (Add to Home Screen) mode where there's no
+     Safari chrome to naturally push content away from those areas. */
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
 }
 
 .library-fab {

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#d6d3c4"/>
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="url(#shellGrad)"/>
+  <defs>
+    <linearGradient id="shellGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d6d3c4"/>
+      <stop offset="1" stop-color="#b9b6a8"/>
+    </linearGradient>
+  </defs>
+  <rect x="96" y="80" width="320" height="290" rx="18" fill="#4b4a52"/>
+  <rect x="126" y="110" width="260" height="200" rx="6" fill="#9bbc0f"/>
+  <circle cx="150" cy="410" r="26" fill="#7b2d43"/>
+  <circle cx="230" cy="392" r="26" fill="#7b2d43"/>
+  <rect x="330" y="380" width="70" height="46" rx="10" fill="#2e2d33"/>
+</svg>
