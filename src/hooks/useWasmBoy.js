@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import WasmBoyLib from 'wasmboy'
-
-const { WasmBoy } = WasmBoyLib
+import * as WasmBoyModule from 'wasmboy'
 import { api } from '../api/client'
 import { serializeState, deserializeState } from '../utils/stateSerializer'
+
+// wasmboy's module shape differs between Vite dev (default export only)
+// and a rollup production build (named export only) — support both.
+const WasmBoy = WasmBoyModule.WasmBoy || WasmBoyModule.default?.WasmBoy || WasmBoyModule.default
 
 const CONFIG = {
   headless: false,
