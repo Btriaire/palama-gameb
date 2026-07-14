@@ -27,7 +27,11 @@ export function useWasmBoy(canvasRef) {
   useEffect(() => {
     if (!canvasRef.current || configuredRef.current) return
     configuredRef.current = true
-    WasmBoy.config(CONFIG, canvasRef.current).catch((err) => setError(err.message))
+    WasmBoy.config(CONFIG, canvasRef.current)
+      // The default joypad (keyboard/gamepad) polls every frame and overwrites
+      // setJoypadState() otherwise, silently swallowing our touch/keyboard input.
+      .then(() => WasmBoy.disableDefaultJoypad())
+      .catch((err) => setError(err.message))
   }, [canvasRef])
 
   const loadRom = useCallback(async (romMeta, fileOrUrl) => {

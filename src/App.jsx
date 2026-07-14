@@ -3,6 +3,7 @@ import Screen from './components/Screen'
 import Controls from './components/Controls'
 import Library from './components/Library'
 import { useWasmBoy } from './hooks/useWasmBoy'
+import { useJoypad } from './hooks/useJoypad'
 import './App.scss'
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
     isReady, isPlaying, currentRom, error,
     loadRom, togglePlay, reset, saveToCloud, loadFromCloud, setJoypad,
   } = useWasmBoy(canvasRef)
+  const { press, release } = useJoypad(setJoypad)
 
   const flash = (msg) => {
     setStatus(msg)
@@ -71,7 +73,7 @@ export default function App() {
           </div>
 
           <div className="dmg-body">
-            <Controls setJoypad={setJoypad} disabled={!isReady} />
+            <Controls press={press} release={release} disabled={!isReady} />
 
             <div className="dmg-transport">
               <button onClick={togglePlay} disabled={!isReady}>{isPlaying ? 'Pause' : 'Play'}</button>

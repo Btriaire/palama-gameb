@@ -1,34 +1,20 @@
-import { useRef } from 'react'
-
-const EMPTY_STATE = { up: false, right: false, down: false, left: false, a: false, b: false, select: false, start: false }
-
-export default function Controls({ setJoypad, disabled }) {
-  const pressedRef = useRef(new Set())
-
-  const sync = () => {
-    const state = { ...EMPTY_STATE }
-    pressedRef.current.forEach((key) => { state[key] = true })
-    setJoypad(state)
-  }
-
-  const press = (key) => (e) => {
+export default function Controls({ press, release, disabled }) {
+  const guardedPress = (key) => (e) => {
     e.preventDefault()
     if (disabled) return
-    pressedRef.current.add(key)
-    sync()
+    press(key)
   }
 
-  const release = (key) => (e) => {
+  const guardedRelease = (key) => (e) => {
     e.preventDefault()
-    pressedRef.current.delete(key)
-    sync()
+    release(key)
   }
 
   const dpadHandlers = (key) => ({
-    onPointerDown: press(key),
-    onPointerUp: release(key),
-    onPointerLeave: release(key),
-    onPointerCancel: release(key),
+    onPointerDown: guardedPress(key),
+    onPointerUp: guardedRelease(key),
+    onPointerLeave: guardedRelease(key),
+    onPointerCancel: guardedRelease(key),
   })
 
   return (
