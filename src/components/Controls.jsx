@@ -1,28 +1,38 @@
+import { useEffect, useRef } from 'react'
+
 export default function Controls({ press, release, disabled }) {
+  // Maps an active pointerId -> the joypad key it's holding down. Released via
+  // window-level listeners so a finger doesn't have to stay exactly over the
+  // button (or rely on setPointerCapture, which has known WebKit bugs where it
+  // throws and silently kills the rest of the handler on iOS Safari).
+  const activePointers = useRef(new Map())
+
+  useEffect(() => {
+    const releaseAll = (e) => {
+      const key = activePointers.current.get(e.pointerId)
+      if (key === undefined) return
+      activePointers.current.delete(e.pointerId)
+      release(key)
+    }
+    window.addEventListener('pointerup', releaseAll)
+    window.addEventListener('pointercancel', releaseAll)
+    return () => {
+      window.removeEventListener('pointerup', releaseAll)
+      window.removeEventListener('pointercancel', releaseAll)
+    }
+  }, [release])
+
   const guardedPress = (key) => (e) => {
     e.preventDefault()
     if (disabled) return
-    // Capture the pointer so a finger drifting slightly off the button
-    // (very common on small touch targets) doesn't fire pointerleave
-    // and cancel the press before pointerup ever arrives. Some browsers
-    // throw here (invalid pointerId, etc) — never let that swallow the press.
-    try {
-      e.currentTarget.setPointerCapture?.(e.pointerId)
-    } catch {
-      // ignore — capture is a nice-to-have, not required for the press itself
-    }
+    activePointers.current.set(e.pointerId, key)
     press(key)
-  }
-
-  const guardedRelease = (key) => (e) => {
-    e.preventDefault()
-    release(key)
   }
 
   const dpadHandlers = (key) => ({
     onPointerDown: guardedPress(key),
-    onPointerUp: guardedRelease(key),
-    onPointerCancel: guardedRelease(key),
+    // Real release happens via the window-level pointerup/pointercancel above.
+    onContextMenu: (e) => e.preventDefault(),
   })
 
   return (
