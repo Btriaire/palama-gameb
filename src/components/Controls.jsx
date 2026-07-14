@@ -4,8 +4,13 @@ export default function Controls({ press, release, disabled }) {
     if (disabled) return
     // Capture the pointer so a finger drifting slightly off the button
     // (very common on small touch targets) doesn't fire pointerleave
-    // and cancel the press before pointerup ever arrives.
-    e.currentTarget.setPointerCapture?.(e.pointerId)
+    // and cancel the press before pointerup ever arrives. Some browsers
+    // throw here (invalid pointerId, etc) — never let that swallow the press.
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId)
+    } catch {
+      // ignore — capture is a nice-to-have, not required for the press itself
+    }
     press(key)
   }
 
