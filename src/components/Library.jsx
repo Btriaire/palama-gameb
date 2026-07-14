@@ -33,8 +33,8 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
 
   const uploadFile = async (file) => {
     if (!file) return
-    if (!/\.(gb|gbc)$/i.test(file.name)) {
-      setErr('Seuls les fichiers .gb et .gbc sont acceptés')
+    if (!/\.(gb|gbc|gba)$/i.test(file.name)) {
+      setErr('Seuls les fichiers .gb, .gbc et .gba sont acceptés')
       return
     }
     setBusy(true)
@@ -89,9 +89,9 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
           <path d="M12 4v11m0 0-4-4m4 4 4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span>{busy ? 'Envoi en cours…' : 'Ajouter une ROM'}</span>
-        <small>.gb ou .gbc — appuie ou dépose ici</small>
+        <small>.gb, .gbc ou .gba — appuie ou dépose ici</small>
       </button>
-      <input ref={fileInputRef} type="file" accept=".gb,.gbc" hidden onChange={handleFile} />
+      <input ref={fileInputRef} type="file" accept=".gb,.gbc,.gba" hidden onChange={handleFile} />
 
       {err && <p className="gb-error">{err}</p>}
 
@@ -113,7 +113,7 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
               onClick={() => onSelectRom(rom, api.romUrl(rom.id))}
             >
               <span className="rom-cartridge" style={{ background: colorFor(rom.name) }}>
-                {rom.name.replace(/\.(gb|gbc)$/i, '').slice(0, 2).toUpperCase()}
+                {rom.name.replace(/\.(gb|gbc|gba)$/i, '').slice(0, 2).toUpperCase()}
               </span>
               <span className="rom-info">
                 <span className="rom-name">{rom.name}</span>

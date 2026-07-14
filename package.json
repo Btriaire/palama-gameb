@@ -9,6 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@gba-kit/gba-browser": "^0.3.0",
+    "@gba-kit/gba-emulator": "^0.3.0",
+    "@gba-kit/gba-react": "^0.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "sass": "^1.101.0",

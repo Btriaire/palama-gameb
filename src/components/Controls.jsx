@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export default function Controls({ press, release, disabled }) {
+export default function Controls({ press, release, disabled, showShoulders }) {
   // Maps an active pointerId -> the joypad key it's holding down. Released via
   // window-level listeners so a finger doesn't have to stay exactly over the
   // button (or rely on setPointerCapture, which has known WebKit bugs where it
@@ -37,6 +37,13 @@ export default function Controls({ press, release, disabled }) {
 
   return (
     <div className="gb-controls">
+      {showShoulders && (
+        <div className="gb-shoulders">
+          <button className="shoulder-btn shoulder-l" {...dpadHandlers('L')}>L</button>
+          <button className="shoulder-btn shoulder-r" {...dpadHandlers('R')}>R</button>
+        </div>
+      )}
+
       <div className="gb-dpad">
         <button className="dpad-btn dpad-up" {...dpadHandlers('UP')} aria-label="Haut" />
         <button className="dpad-btn dpad-right" {...dpadHandlers('RIGHT')} aria-label="Droite" />

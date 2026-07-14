@@ -1,8 +1,13 @@
 import { useEffect, useRef } from 'react'
 
 // WasmBoy's setJoypadState reads UPPERCASE keys (a.UP, a.A, ...) — anything
-// else silently evaluates to "not pressed" for every button.
-const EMPTY_STATE = { UP: false, RIGHT: false, DOWN: false, LEFT: false, A: false, B: false, SELECT: false, START: false }
+// else silently evaluates to "not pressed" for every button. L/R only apply
+// to GBA ROMs; harmless no-ops for GB/GBC.
+const EMPTY_STATE = {
+  UP: false, RIGHT: false, DOWN: false, LEFT: false,
+  A: false, B: false, SELECT: false, START: false,
+  L: false, R: false,
+}
 
 const KEY_MAP = {
   ArrowUp: 'UP',
@@ -18,6 +23,8 @@ const KEY_MAP = {
   Enter: 'START',
   ShiftRight: 'SELECT',
   ShiftLeft: 'SELECT',
+  KeyQ: 'L',
+  KeyE: 'R',
 }
 
 // Single source of truth for joypad state — touch buttons and keyboard both

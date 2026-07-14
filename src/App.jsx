@@ -3,17 +3,26 @@ import Screen from './components/Screen'
 import Controls from './components/Controls'
 import Library from './components/Library'
 import { useWasmBoy } from './hooks/useWasmBoy'
+import { useGba } from './hooks/useGba'
 import { useJoypad } from './hooks/useJoypad'
 import './App.scss'
 
+function coreForFile(name) {
+  return /\.gba$/i.test(name) ? 'gba' : 'gb'
+}
+
 export default function App() {
-  const canvasRef = useRef(null)
+  const gbCanvasRef = useRef(null)
+  const gbaCanvasRef = useRef(null)
   const [libraryOpen, setLibraryOpen] = useState(true)
   const [status, setStatus] = useState('')
-  const {
-    isReady, isPlaying, currentRom, error,
-    loadRom, togglePlay, reset, saveToCloud, loadFromCloud, setJoypad,
-  } = useWasmBoy(canvasRef)
+  const [activeCore, setActiveCore] = useState(null)
+
+  const gb = useWasmBoy(gbCanvasRef)
+  const gba = useGba(gbaCanvasRef)
+  const active = activeCore === 'gba' ? gba : gb
+
+  const { isReady, isPlaying, currentRom, error, togglePlay, reset, saveToCloud, loadFromCloud, setJoypad } = active
   const { press, release } = useJoypad(setJoypad)
 
   const flash = (msg) => {
@@ -22,7 +31,10 @@ export default function App() {
   }
 
   const handleSelectRom = async (romMeta, url) => {
-    await loadRom(romMeta, url)
+    const core = coreForFile(romMeta.name)
+    setActiveCore(core)
+    const target = core === 'gba' ? gba : gb
+    await target.loadRom(romMeta, url)
     setLibraryOpen(false)
   }
 
@@ -68,7 +80,9 @@ export default function App() {
             <div className="dmg-brand">PaLaMa <span>GameB</span></div>
             <div className="dmg-screen-frame">
               <Screen
-                canvasRef={canvasRef}
+                gbCanvasRef={gbCanvasRef}
+                gbaCanvasRef={gbaCanvasRef}
+                activeCore={activeCore}
                 isReady={isReady}
                 error={error}
                 placeholderText={currentRom ? 'Chargement…' : 'Choisis une ROM dans la bibliothèque'}
@@ -76,12 +90,12 @@ export default function App() {
             </div>
             <div className="dmg-indicator-row">
               <span className={`power-led ${isReady ? 'on' : ''}`} />
-              <span className="dmg-model">DMG-01</span>
+              <span className="dmg-model">{activeCore === 'gba' ? 'AGB-001' : 'DMG-01'}</span>
             </div>
           </div>
 
           <div className="dmg-body">
-            <Controls press={press} release={release} disabled={!isReady} />
+            <Controls press={press} release={release} disabled={!isReady} showShoulders={activeCore === 'gba'} />
 
             <div className="dmg-transport">
               <button onClick={togglePlay} disabled={!isReady}>{isPlaying ? 'Pause' : 'Play'}</button>

@@ -235,6 +235,23 @@ body {
   margin-bottom: 2.2rem;
 }
 
+.gb-shoulders {
+  position: absolute;
+  top: -2.2rem; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+  padding: 0 .3rem;
+}
+.shoulder-btn {
+  position: relative;
+  width: 54px; height: 26px; border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(155deg, #4a4854, #35333c);
+  color: #ddd; font-weight: 700; font-size: .7rem; border: none;
+  box-shadow: 0 3px 0 #26252b;
+  touch-action: none;
+}
+.shoulder-btn:active { box-shadow: 0 1px 0 #26252b; transform: translateY(2px); }
+.shoulder-btn::before { content: ''; position: absolute; inset: -8px; }
+
 .gb-dpad {
   position: relative;
   width: 110px; height: 110px;
