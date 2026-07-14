@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 // WasmBoy's setJoypadState reads UPPERCASE keys (a.UP, a.A, ...) — anything
 // else silently evaluates to "not pressed" for every button. L/R only apply
@@ -31,22 +31,24 @@ const KEY_MAP = {
 // feed into the same pressed set so they don't fight over setJoypadState().
 export function useJoypad(setJoypad) {
   const pressedRef = useRef(new Set())
+  const setJoypadRef = useRef(setJoypad)
+  setJoypadRef.current = setJoypad
 
   const sync = () => {
     const state = { ...EMPTY_STATE }
     pressedRef.current.forEach((key) => { state[key] = true })
-    setJoypad(state)
+    setJoypadRef.current(state)
   }
 
-  const press = (key) => {
+  const press = useCallback((key) => {
     pressedRef.current.add(key)
     sync()
-  }
+  }, [])
 
-  const release = (key) => {
+  const release = useCallback((key) => {
     pressedRef.current.delete(key)
     sync()
-  }
+  }, [])
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -67,6 +69,22 @@ export function useJoypad(setJoypad) {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
+  }, [press, release])
+
+  // Re-assert the held state every frame instead of only on press/release
+  // edges. Something (WasmBoy's own internal loop, a stray re-render, or
+  // event churn) was winning a race and reverting our state between our
+  // one-shot writes — a single tap "won" often enough to nudge the
+  // character, but a held press kept losing. Continuously re-sending the
+  // current state means our write is always the most recent one.
+  useEffect(() => {
+    let frameId
+    const loop = () => {
+      if (pressedRef.current.size > 0) sync()
+      frameId = requestAnimationFrame(loop)
+    }
+    frameId = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(frameId)
   }, [])
 
   return { press, release }
