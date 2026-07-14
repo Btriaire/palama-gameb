@@ -264,13 +264,16 @@ body {
   box-shadow: inset 0 1px 2px rgba(255,255,255,.15), 0 2px 3px rgba(0,0,0,.4);
 }
 .dpad-btn:active { background: #232228; }
-/* Invisible enlarged tap target — the visual cross stays the same size,
-   but a thumb landing a few px off still hits the button (iOS HIG: 44px min). */
-.dpad-btn::before {
-  content: '';
-  position: absolute;
-  inset: -8px;
-}
+/* Invisible enlarged tap target, but only extended OUTWARD (away from the
+   center and neighboring arms) — expanding on all sides made adjacent arms
+   overlap each other near the crux, which made direction presses register
+   as the wrong button (or nothing) far more often than helping. */
+.dpad-up::before, .dpad-down::before { content: ''; position: absolute; left: -8px; right: -8px; }
+.dpad-up::before { top: -8px; bottom: 0; }
+.dpad-down::before { bottom: -8px; top: 0; }
+.dpad-left::before, .dpad-right::before { content: ''; position: absolute; top: -8px; bottom: -8px; }
+.dpad-left::before { left: -8px; right: 0; }
+.dpad-right::before { right: -8px; left: 0; }
 .dpad-up, .dpad-down { left: 38px; width: 34px; height: 44px; }
 .dpad-up { top: 0; border-radius: 4px 4px 0 0; }
 .dpad-down { bottom: 0; border-radius: 0 0 4px 4px; }
@@ -280,6 +283,8 @@ body {
 .dpad-center {
   position: absolute; left: 38px; top: 38px; width: 34px; height: 34px;
   background: #2e2d33;
+  /* Purely decorative — never intercept taps meant for the surrounding arms. */
+  pointer-events: none;
 }
 
 .gb-ab {
