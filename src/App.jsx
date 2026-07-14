@@ -46,14 +46,22 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      {libraryOpen && <div className="library-backdrop" onClick={() => setLibraryOpen(false)} />}
       <aside className={`library-panel ${libraryOpen ? 'open' : ''}`}>
-        <Library onSelectRom={handleSelectRom} currentRomId={currentRom?.id} />
+        <Library onSelectRom={handleSelectRom} currentRomId={currentRom?.id} onClose={() => setLibraryOpen(false)} />
       </aside>
 
       <main className="console-stage">
-        <button className="library-toggle" onClick={() => setLibraryOpen((v) => !v)}>
-          {libraryOpen ? '‹ Fermer' : '☰ Bibliothèque'}
-        </button>
+        {!libraryOpen && (
+          <button className="library-fab" onClick={() => setLibraryOpen(true)}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <rect x="4" y="3" width="16" height="18" rx="2" />
+              <rect x="8" y="6" width="8" height="4" rx="1" />
+              <line x1="8" y1="14" x2="16" y2="14" strokeLinecap="round" />
+            </svg>
+            Bibliothèque
+          </button>
+        )}
 
         <div className="dmg-shell">
           <div className="dmg-top">
