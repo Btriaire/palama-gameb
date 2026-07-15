@@ -1,10 +1,31 @@
 import { useEffect, useRef } from 'react'
+import { WasmBoy } from '../wasmboyInstance'
 
+// --- GB/GBC: WasmBoy's own built-in touch input (ResponsiveGamepad) ---
+// This is the same input path used by every other WasmBoy-based player —
+// it already handles the iOS touch edge cases (stray finger movement,
+// multi-touch, gesture cancellation) that a hand-rolled implementation kept
+// getting wrong on real devices despite working in every synthetic test.
+function useNativeDpad(ref, enabled) {
+  useEffect(() => {
+    if (!enabled || !ref.current) return
+    const unregister = WasmBoy.ResponsiveGamepad.TouchInput.addDpadInput(ref.current, { allowMultipleDirections: true })
+    return unregister
+  }, [enabled])
+}
+
+function useNativeButton(ref, input, enabled) {
+  useEffect(() => {
+    if (!enabled || !ref.current) return
+    const unregister = WasmBoy.ResponsiveGamepad.TouchInput.addButtonInput(ref.current, input)
+    return unregister
+  }, [enabled])
+}
+
+// --- GBA: our own touch handling (gba-kit has no equivalent built-in) ---
 // Native Touch Events (not Pointer Events) — the oldest, most consistently
-// implemented input API on mobile Safari. Pointer Events + setPointerCapture
-// kept misbehaving on real iPhones despite working in every synthetic test,
-// so this tracks each finger by its own touch identifier instead.
-function usePressable(key, press, release, disabled) {
+// implemented input API on mobile Safari.
+function usePressable(key, press, release, disabled, enabled) {
   const ref = useRef(null)
   const disabledRef = useRef(disabled)
   disabledRef.current = disabled
@@ -13,7 +34,7 @@ function usePressable(key, press, release, disabled) {
 
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!enabled || !el) return
 
     const onTouchStart = (e) => {
       e.preventDefault()
@@ -58,48 +79,73 @@ function usePressable(key, press, release, disabled) {
       el.removeEventListener('contextmenu', onContextMenu)
       window.removeEventListener('mouseup', onMouseUp)
     }
-  }, [key, press, release])
+  }, [key, press, release, enabled])
 
   return ref
 }
 
-export default function Controls({ press, release, disabled, showShoulders }) {
-  const upRef = usePressable('UP', press, release, disabled)
-  const rightRef = usePressable('RIGHT', press, release, disabled)
-  const downRef = usePressable('DOWN', press, release, disabled)
-  const leftRef = usePressable('LEFT', press, release, disabled)
-  const aRef = usePressable('A', press, release, disabled)
-  const bRef = usePressable('B', press, release, disabled)
-  const selectRef = usePressable('SELECT', press, release, disabled)
-  const startRef = usePressable('START', press, release, disabled)
-  const lRef = usePressable('L', press, release, disabled)
-  const rRef = usePressable('R', press, release, disabled)
+export default function Controls({ press, release, disabled, core }) {
+  const isGb = core === 'gb'
+  const isGba = core === 'gba'
+
+  const dpadRef = useRef(null)
+  const aRef = useRef(null)
+  const bRef = useRef(null)
+  const selectRef = useRef(null)
+  const startRef = useRef(null)
+
+  useNativeDpad(dpadRef, isGb && !disabled)
+  useNativeButton(aRef, 'A', isGb && !disabled)
+  useNativeButton(bRef, 'B', isGb && !disabled)
+  useNativeButton(selectRef, 'SELECT', isGb && !disabled)
+  useNativeButton(startRef, 'START', isGb && !disabled)
+
+  const upRef = usePressable('UP', press, release, disabled, isGba)
+  const rightRef = usePressable('RIGHT', press, release, disabled, isGba)
+  const downRef = usePressable('DOWN', press, release, disabled, isGba)
+  const leftRef = usePressable('LEFT', press, release, disabled, isGba)
+  const gbaARef = usePressable('A', press, release, disabled, isGba)
+  const gbaBRef = usePressable('B', press, release, disabled, isGba)
+  const gbaSelectRef = usePressable('SELECT', press, release, disabled, isGba)
+  const gbaStartRef = usePressable('START', press, release, disabled, isGba)
+  const lRef = usePressable('L', press, release, disabled, isGba)
+  const rRef = usePressable('R', press, release, disabled, isGba)
 
   return (
     <div className="gb-controls">
-      {showShoulders && (
+      {isGba && (
         <div className="gb-shoulders">
           <button ref={lRef} className="shoulder-btn shoulder-l">L</button>
           <button ref={rRef} className="shoulder-btn shoulder-r">R</button>
         </div>
       )}
 
-      <div className="gb-dpad">
-        <button ref={upRef} className="dpad-btn dpad-up" aria-label="Haut" />
-        <button ref={rightRef} className="dpad-btn dpad-right" aria-label="Droite" />
-        <button ref={downRef} className="dpad-btn dpad-down" aria-label="Bas" />
-        <button ref={leftRef} className="dpad-btn dpad-left" aria-label="Gauche" />
-        <div className="dpad-center" />
-      </div>
+      {isGba ? (
+        <div className="gb-dpad">
+          <button ref={upRef} className="dpad-btn dpad-up" aria-label="Haut" />
+          <button ref={rightRef} className="dpad-btn dpad-right" aria-label="Droite" />
+          <button ref={downRef} className="dpad-btn dpad-down" aria-label="Bas" />
+          <button ref={leftRef} className="dpad-btn dpad-left" aria-label="Gauche" />
+          <div className="dpad-center" />
+        </div>
+      ) : (
+        <div ref={dpadRef} className="gb-dpad gb-dpad-native" aria-label="Croix directionnelle">
+          <div className="dpad-visual dpad-up" />
+          <div className="dpad-visual dpad-right" />
+          <div className="dpad-visual dpad-down" />
+          <div className="dpad-visual dpad-left" />
+          <div className="dpad-center" />
+        </div>
+      )}
 
       <div className="gb-ab">
-        <button ref={bRef} className="round-btn btn-b">B</button>
-        <button ref={aRef} className="round-btn btn-a">A</button>
+        <button ref={isGba ? gbaBRef : bRef} className="round-btn btn-b">B</button>
+        <button ref={isGba ? gbaARef : aRef} className="round-btn btn-a">A</button>
       </div>
 
       <div className="gb-startselect">
-        <button ref={selectRef} className="pill-btn">Select</button>
-        <button ref={startRef} className="pill-btn">Start</button>
+        <button ref={isGba ? gbaSelectRef : selectRef} className="pill-btn">Select</button>
+        <button ref={isGba ? gbaStartRef : startRef} className="pill-btn">Start</button>
       </div>
     </div>
   )

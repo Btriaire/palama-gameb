@@ -23,8 +23,10 @@ export default function App() {
   const gba = useGba(gbaCanvasRef)
   const active = activeCore === 'gba' ? gba : gb
 
-  const { isReady, isPlaying, currentRom, error, togglePlay, reset, saveToCloud, loadFromCloud, setJoypad } = active
-  const { press, release } = useJoypad(setJoypad)
+  const { isReady, isPlaying, currentRom, error, togglePlay, reset, saveToCloud, loadFromCloud } = active
+  // GB/GBC uses WasmBoy's own built-in input handling (see Controls.jsx) —
+  // this custom press/release pipeline is only wired up for GBA.
+  const { press, release } = useJoypad(gba.setJoypad, activeCore === 'gba')
   useWakeLock(isPlaying)
 
   useEffect(() => {
@@ -106,7 +108,7 @@ export default function App() {
           </div>
 
           <div className="dmg-body">
-            <Controls press={press} release={release} disabled={!isReady} showShoulders={activeCore === 'gba'} />
+            <Controls press={press} release={release} disabled={!isReady} core={activeCore} />
 
             <div className="dmg-transport">
               <button onClick={togglePlay} disabled={!isReady}>{isPlaying ? 'Pause' : 'Play'}</button>

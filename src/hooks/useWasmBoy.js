@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import * as WasmBoyModule from 'wasmboy'
+import { WasmBoy } from '../wasmboyInstance'
 import { api } from '../api/client'
 import { serializeState, deserializeState } from '../utils/stateSerializer'
-
-// wasmboy's module shape differs between Vite dev (default export only)
-// and a rollup production build (named export only) — support both.
-const WasmBoy = WasmBoyModule.WasmBoy || WasmBoyModule.default?.WasmBoy || WasmBoyModule.default
 
 const CONFIG = {
   headless: false,
@@ -19,9 +15,7 @@ const CONFIG = {
 
 // Module-level (not component-level) guard: WasmBoy is a page-wide singleton,
 // and React 18 StrictMode double-mounts components in dev. A useRef guard
-// doesn't survive that remount, so config() fired twice — and WasmBoy.config()
-// re-enables the default joypad each time, silently undoing disableDefaultJoypad()
-// from the first call and re-introducing the input race.
+// doesn't survive that remount, so config() would otherwise fire twice.
 let wasmBoyConfigPromise = null
 
 export function useWasmBoy(canvasRef) {
@@ -34,10 +28,8 @@ export function useWasmBoy(canvasRef) {
   // backgrounded (screen lock, app switch, Safari UI covering the page) —
   // WasmBoy.isPlaying() then genuinely reports false, but nothing ever calls
   // our pause(), so the UI still says "Pause" and looks like it should be
-  // running. Every touch registers (the button itself works fine) but
-  // nothing happens because the emulator core isn't advancing frames at
-  // all. Force a resume whenever the page becomes visible again — but only
-  // if the player didn't deliberately pause (isPlayingRef still true).
+  // running. Force a resume whenever the page becomes visible again — but
+  // only if the player didn't deliberately pause (isPlayingRef still true).
   const isReadyRef = useRef(isReady)
   isReadyRef.current = isReady
   const isPlayingRef = useRef(isPlaying)
@@ -60,22 +52,19 @@ export function useWasmBoy(canvasRef) {
 
   useEffect(() => {
     if (!canvasRef.current || wasmBoyConfigPromise) return
+    // Use WasmBoy's own built-in keyboard/touch input system (ResponsiveGamepad)
+    // instead of hand-rolled event handling — it's the same input path used by
+    // every other WasmBoy-based player, and it already handles the iOS touch
+    // edge cases we kept fighting with a custom implementation. Buttons are
+    // registered separately (see Controls.jsx) via WasmBoy.ResponsiveGamepad.
     wasmBoyConfigPromise = WasmBoy.config(CONFIG, canvasRef.current)
-      // The default joypad (keyboard/gamepad) polls every frame and overwrites
-      // setJoypadState() otherwise, silently swallowing our touch/keyboard input.
-      .then(() => WasmBoy.disableDefaultJoypad())
+      .then(() => WasmBoy.enableDefaultJoypad())
       .catch((err) => setError(err.message))
   }, [canvasRef])
 
   const loadRom = useCallback(async (romMeta, fileOrUrl) => {
     setError(null)
     try {
-      // loadROM() can resolve before config()/disableDefaultJoypad() finishes
-      // (WASM compile + worker boot can take longer than loading a small ROM).
-      // Without this await, isReady flips true and the buttons become usable
-      // while the default joypad is still active — it keeps fighting our
-      // setJoypadState() writes, which is why input could feel completely
-      // unreliable even though everything looked correctly wired.
       await wasmBoyConfigPromise
       await WasmBoy.loadROM(fileOrUrl, { fileName: romMeta.name })
       setCurrentRom(romMeta)
@@ -128,10 +117,6 @@ export function useWasmBoy(canvasRef) {
     setIsPlaying(true)
   }, [currentRom])
 
-  const setJoypad = useCallback((joypadState) => {
-    WasmBoy.setJoypadState(joypadState)
-  }, [])
-
   return {
     isReady,
     isPlaying,
@@ -144,6 +129,5 @@ export function useWasmBoy(canvasRef) {
     togglePlay,
     saveToCloud,
     loadFromCloud,
-    setJoypad,
   }
 }

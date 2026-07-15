@@ -29,7 +29,10 @@ const KEY_MAP = {
 
 // Single source of truth for joypad state — touch buttons and keyboard both
 // feed into the same pressed set so they don't fight over setJoypadState().
-export function useJoypad(setJoypad) {
+// Only used for the GBA path: GB/GBC now relies on WasmBoy's own built-in
+// keyboard handling (see wasmboyInstance / Controls.jsx), so `enabled` is
+// false there to avoid a redundant second keyboard listener.
+export function useJoypad(setJoypad, enabled = true) {
   const pressedRef = useRef(new Set())
   const setJoypadRef = useRef(setJoypad)
   setJoypadRef.current = setJoypad
@@ -51,6 +54,7 @@ export function useJoypad(setJoypad) {
   }, [])
 
   useEffect(() => {
+    if (!enabled) return
     const onKeyDown = (e) => {
       const key = KEY_MAP[e.code]
       if (!key) return
@@ -69,7 +73,7 @@ export function useJoypad(setJoypad) {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [press, release])
+  }, [press, release, enabled])
 
   return { press, release }
 }
