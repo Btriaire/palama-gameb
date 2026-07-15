@@ -9,7 +9,14 @@ import { WasmBoy } from '../wasmboyInstance'
 function useNativeDpad(ref, enabled) {
   useEffect(() => {
     if (!enabled || !ref.current) return
-    const unregister = WasmBoy.ResponsiveGamepad.TouchInput.addDpadInput(ref.current, { allowMultipleDirections: true })
+    // allowMultipleDirections lets horizontal AND vertical both register from
+    // a single touch (diagonal support) — but with only a ~5px deadzone, a
+    // straight tap on the visual "UP" arm (which spans well left/right of
+    // dead-center) frequently also fires LEFT or RIGHT, since our arm is a
+    // classic 4-direction cross, not an 8-way stick. false picks whichever
+    // axis has the larger displacement from center — the correct behavior
+    // for this shape, and what was producing "wrong/mixed" presses.
+    const unregister = WasmBoy.ResponsiveGamepad.TouchInput.addDpadInput(ref.current, { allowMultipleDirections: false })
     return unregister
   }, [enabled])
 }
