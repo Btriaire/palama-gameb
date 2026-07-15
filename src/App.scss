@@ -278,7 +278,9 @@ body {
   width: 110px; height: 110px;
   touch-action: none;
 }
-/* GBA path: 4 separate real buttons (own touch handling, no WasmBoy equiv). */
+/* 4 separate real buttons for both GB (WasmBoy addButtonInput) and GBA
+   (custom touch handling) — a single position-guessing touch zone didn't
+   match this cross shape reliably (see git history). */
 .dpad-btn {
   position: absolute;
   background: #2e2d33;
@@ -293,25 +295,12 @@ body {
 .dpad-left::before { left: -8px; right: 0; }
 .dpad-right::before { right: -8px; left: 0; }
 
-/* GB/GBC path: one native touch zone registered with WasmBoy's own
-   ResponsiveGamepad TouchInput — the visual arms below are purely
-   decorative (pointer-events: none) so every touch lands on the container,
-   which computes direction from touch position the same way WasmBoy's own
-   reference players do. */
-.gb-dpad-native { cursor: pointer; }
-.dpad-visual {
-  position: absolute;
-  background: #2e2d33;
-  pointer-events: none;
-}
-.dpad-visual:active { background: #232228; }
-
-.dpad-up, .dpad-down, .dpad-visual.dpad-up, .dpad-visual.dpad-down { left: 38px; width: 34px; height: 44px; }
-.dpad-up, .dpad-visual.dpad-up { top: 0; border-radius: 4px 4px 0 0; }
-.dpad-down, .dpad-visual.dpad-down { bottom: 0; border-radius: 0 0 4px 4px; }
-.dpad-left, .dpad-right, .dpad-visual.dpad-left, .dpad-visual.dpad-right { top: 38px; width: 44px; height: 34px; }
-.dpad-left, .dpad-visual.dpad-left { left: 0; border-radius: 4px 0 0 4px; }
-.dpad-right, .dpad-visual.dpad-right { right: 0; border-radius: 0 4px 4px 0; }
+.dpad-up, .dpad-down { left: 38px; width: 34px; height: 44px; }
+.dpad-up { top: 0; border-radius: 4px 4px 0 0; }
+.dpad-down { bottom: 0; border-radius: 0 0 4px 4px; }
+.dpad-left, .dpad-right { top: 38px; width: 44px; height: 34px; }
+.dpad-left { left: 0; border-radius: 4px 0 0 4px; }
+.dpad-right { right: 0; border-radius: 0 4px 4px 0; }
 .dpad-center {
   position: absolute; left: 38px; top: 38px; width: 34px; height: 34px;
   background: #2e2d33;
