@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import Screen from './components/Screen'
 import Controls from './components/Controls'
 import Library from './components/Library'
-import DebugPanel from './components/DebugPanel'
 import { useWasmBoy } from './hooks/useWasmBoy'
 import { useGba } from './hooks/useGba'
 import { useJoypad } from './hooks/useJoypad'
@@ -120,8 +119,6 @@ export default function App() {
 
         {status && <div className="toast">{status}</div>}
       </main>
-
-      <DebugPanel />
     </div>
   )
 }

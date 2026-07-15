@@ -2,12 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as WasmBoyModule from 'wasmboy'
 import { api } from '../api/client'
 import { serializeState, deserializeState } from '../utils/stateSerializer'
-import { pushDebug } from '../utils/debugLog'
 
 // wasmboy's module shape differs between Vite dev (default export only)
 // and a rollup production build (named export only) — support both.
 const WasmBoy = WasmBoyModule.WasmBoy || WasmBoyModule.default?.WasmBoy || WasmBoyModule.default
-let setJoypadCallCount = 0
 
 const CONFIG = {
   headless: false,
@@ -49,7 +47,6 @@ export function useWasmBoy(canvasRef) {
     const resync = () => {
       if (document.visibilityState !== 'visible') return
       if (isReadyRef.current && isPlayingRef.current && WasmBoy.isPlaying && !WasmBoy.isPlaying()) {
-        pushDebug('visibility restored: WasmBoy was stalled, forcing play()')
         WasmBoy.play()
       }
     }
@@ -63,13 +60,11 @@ export function useWasmBoy(canvasRef) {
 
   useEffect(() => {
     if (!canvasRef.current || wasmBoyConfigPromise) return
-    pushDebug('WasmBoy.config() starting')
     wasmBoyConfigPromise = WasmBoy.config(CONFIG, canvasRef.current)
       // The default joypad (keyboard/gamepad) polls every frame and overwrites
       // setJoypadState() otherwise, silently swallowing our touch/keyboard input.
-      .then(() => { pushDebug('config resolved, disabling default joypad'); return WasmBoy.disableDefaultJoypad() })
-      .then(() => pushDebug('default joypad disabled OK'))
-      .catch((err) => { pushDebug(`config/disable ERROR: ${err.message}`); setError(err.message) })
+      .then(() => WasmBoy.disableDefaultJoypad())
+      .catch((err) => setError(err.message))
   }, [canvasRef])
 
   const loadRom = useCallback(async (romMeta, fileOrUrl) => {
@@ -134,11 +129,6 @@ export function useWasmBoy(canvasRef) {
   }, [currentRom])
 
   const setJoypad = useCallback((joypadState) => {
-    const pressed = Object.entries(joypadState).filter(([, v]) => v).map(([k]) => k)
-    setJoypadCallCount++
-    if (pressed.length > 0 && setJoypadCallCount % 30 === 1) {
-      pushDebug(`WasmBoy.setJoypadState [${pressed}] isPlaying=${WasmBoy.isPlaying()}`)
-    }
     WasmBoy.setJoypadState(joypadState)
   }, [])
 

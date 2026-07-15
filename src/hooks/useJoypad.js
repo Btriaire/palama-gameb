@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { pushDebug } from '../utils/debugLog'
 
 // WasmBoy's setJoypadState reads UPPERCASE keys (a.UP, a.A, ...) — anything
 // else silently evaluates to "not pressed" for every button. L/R only apply
@@ -42,13 +41,11 @@ export function useJoypad(setJoypad) {
   }
 
   const press = useCallback((key) => {
-    pushDebug(`press(${key})`)
     pressedRef.current.add(key)
     sync()
   }, [])
 
   const release = useCallback((key) => {
-    pushDebug(`release(${key})`)
     pressedRef.current.delete(key)
     sync()
   }, [])
@@ -73,27 +70,6 @@ export function useJoypad(setJoypad) {
       window.removeEventListener('keyup', onKeyUp)
     }
   }, [press, release])
-
-  // Re-assert the held state every frame instead of only on press/release
-  // edges. Something (WasmBoy's own internal loop, a stray re-render, or
-  // event churn) was winning a race and reverting our state between our
-  // one-shot writes — a single tap "won" often enough to nudge the
-  // character, but a held press kept losing. Continuously re-sending the
-  // current state means our write is always the most recent one.
-  useEffect(() => {
-    let frameId
-    let frameCount = 0
-    const loop = () => {
-      frameCount++
-      if (pressedRef.current.size > 0) {
-        sync()
-        if (frameCount % 30 === 0) pushDebug(`rAF loop alive, pressed=[${[...pressedRef.current]}]`)
-      }
-      frameId = requestAnimationFrame(loop)
-    }
-    frameId = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(frameId)
-  }, [])
 
   return { press, release }
 }
