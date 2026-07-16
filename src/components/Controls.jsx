@@ -16,13 +16,57 @@ function useNativeButton(ref, input, enabled) {
   }, [enabled])
 }
 
-// Diagonal corner pads: the same DOM element registered as TWO WasmBoy
-// button inputs at once (e.g. DPAD_UP + DPAD_LEFT), so one tap holds both.
-function useNativeButtonMulti(ref, inputs, enabled) {
+// Diagonal corner pads: relay synthetic touch events to the two cardinal
+// buttons instead of registering the diagonal element as its own WasmBoy
+// input. Registering the same input (e.g. DPAD_UP) on two different
+// elements broke ALL directions: WasmBoy's getState() aggregates every
+// registered button by blindly overwriting state[input] = button.active in
+// array order, so the diagonal's (usually inactive) entry — added after the
+// cardinal one — always stomped the real cardinal press back to false on
+// every frame. Relaying to the real cardinal elements keeps exactly one
+// registration per direction, so there's nothing to clobber.
+function useDiagonalRelay(diagRef, targetRefs, enabled) {
   useEffect(() => {
-    if (!enabled || !ref.current) return
-    const unregisters = inputs.map((input) => WasmBoy.ResponsiveGamepad.TouchInput.addButtonInput(ref.current, input))
-    return () => unregisters.forEach((u) => u())
+    const el = diagRef.current
+    if (!enabled || !el) return
+
+    const relay = (type) => (e) => {
+      e.preventDefault()
+      const isEnd = type === 'touchend' || type === 'touchcancel'
+      const touches = isEnd ? [] : [...e.changedTouches]
+      targetRefs.forEach((targetRef) => {
+        const target = targetRef.current
+        if (!target) return
+        target.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches, targetTouches: touches, changedTouches: [...e.changedTouches] }))
+      })
+    }
+    const onTouchStart = relay('touchstart')
+    const onTouchEnd = relay('touchend')
+    const relayMouse = (type) => () => {
+      targetRefs.forEach((targetRef) => {
+        const target = targetRef.current
+        if (target) target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }))
+      })
+    }
+    const onMouseDown = relayMouse('mousedown')
+    const onMouseUp = relayMouse('mouseup')
+    const onContextMenu = (e) => e.preventDefault()
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchend', onTouchEnd, { passive: false })
+    el.addEventListener('touchcancel', onTouchEnd, { passive: false })
+    el.addEventListener('mousedown', onMouseDown)
+    el.addEventListener('contextmenu', onContextMenu)
+    window.addEventListener('mouseup', onMouseUp)
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+      el.removeEventListener('mousedown', onMouseDown)
+      el.removeEventListener('contextmenu', onContextMenu)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
   }, [enabled])
 }
 
@@ -175,10 +219,10 @@ export default function Controls({ press, release, disabled, core, leftHanded })
   useNativeButton(nativeBRef, 'B', isGb && !disabled)
   useNativeButton(nativeSelectRef, 'SELECT', isGb && !disabled)
   useNativeButton(nativeStartRef, 'START', isGb && !disabled)
-  useNativeButtonMulti(nativeUpLeftRef, ['DPAD_UP', 'DPAD_LEFT'], isGb && !disabled)
-  useNativeButtonMulti(nativeUpRightRef, ['DPAD_UP', 'DPAD_RIGHT'], isGb && !disabled)
-  useNativeButtonMulti(nativeDownLeftRef, ['DPAD_DOWN', 'DPAD_LEFT'], isGb && !disabled)
-  useNativeButtonMulti(nativeDownRightRef, ['DPAD_DOWN', 'DPAD_RIGHT'], isGb && !disabled)
+  useDiagonalRelay(nativeUpLeftRef, [nativeUpRef, nativeLeftRef], isGb && !disabled)
+  useDiagonalRelay(nativeUpRightRef, [nativeUpRef, nativeRightRef], isGb && !disabled)
+  useDiagonalRelay(nativeDownLeftRef, [nativeDownRef, nativeLeftRef], isGb && !disabled)
+  useDiagonalRelay(nativeDownRightRef, [nativeDownRef, nativeRightRef], isGb && !disabled)
 
   // GBA: our own custom touch handling.
   const upRef = usePressable('UP', press, release, disabled, isGba)
