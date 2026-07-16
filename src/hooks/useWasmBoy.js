@@ -3,14 +3,29 @@ import { WasmBoy } from '../wasmboyInstance'
 import { api } from '../api/client'
 import { serializeState, deserializeState } from '../utils/stateSerializer'
 
+// Matches VaporBoy's config (vaporboyOptions.config.js) — WasmBoy's own
+// README points to VaporBoy as the reference player for actually playing
+// games on mobile, as opposed to the plain debugger demo. Without these
+// batching/caching options WasmBoy defaults to per-sample/per-tile
+// postMessage traffic between the main thread and its worker, which a real
+// iPhone apparently can't sustain for more than a few seconds of real
+// gameplay (audio, image, everything stalls together) even though it looks
+// fine on desktop with no real CPU/audio load.
 const CONFIG = {
   headless: false,
   useGbcWhenOptional: true,
   isAudioEnabled: true,
   isGbcColorizationEnabled: true,
-  frameSkip: 0,
+  frameSkip: 1,
   gameboyFPSCap: 60,
   isTimersEnabled: true,
+  audioBatchProcessing: true,
+  timersBatchProcessing: false,
+  audioAccumulateSamples: true,
+  graphicsBatchProcessing: false,
+  graphicsDisableScanlineRendering: false,
+  tileRendering: true,
+  tileCaching: true,
 }
 
 // Module-level (not component-level) guard: WasmBoy is a page-wide singleton,
