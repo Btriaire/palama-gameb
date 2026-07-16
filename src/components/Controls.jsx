@@ -16,6 +16,16 @@ function useNativeButton(ref, input, enabled) {
   }, [enabled])
 }
 
+// Diagonal corner pads: the same DOM element registered as TWO WasmBoy
+// button inputs at once (e.g. DPAD_UP + DPAD_LEFT), so one tap holds both.
+function useNativeButtonMulti(ref, inputs, enabled) {
+  useEffect(() => {
+    if (!enabled || !ref.current) return
+    const unregisters = inputs.map((input) => WasmBoy.ResponsiveGamepad.TouchInput.addButtonInput(ref.current, input))
+    return () => unregisters.forEach((u) => u())
+  }, [enabled])
+}
+
 // --- GBA: our own touch handling (gba-kit has no equivalent built-in) ---
 // Native Touch Events (not Pointer Events) — the oldest, most consistently
 // implemented input API on mobile Safari.
@@ -78,7 +88,67 @@ function usePressable(key, press, release, disabled, enabled) {
   return ref
 }
 
-export default function Controls({ press, release, disabled, core }) {
+// GBA diagonal corner pads: press/release BOTH keys together (e.g. UP+LEFT).
+function usePressableMulti(keys, press, release, disabled, enabled) {
+  const ref = useRef(null)
+  const disabledRef = useRef(disabled)
+  disabledRef.current = disabled
+  const touchIdRef = useRef(null)
+  const mouseDownRef = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!enabled || !el) return
+
+    const onTouchStart = (e) => {
+      e.preventDefault()
+      if (disabledRef.current) return
+      touchIdRef.current = e.changedTouches[0].identifier
+      keys.forEach((k) => press(k))
+    }
+    const onTouchEnd = (e) => {
+      e.preventDefault()
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchIdRef.current) {
+          touchIdRef.current = null
+          keys.forEach((k) => release(k))
+        }
+      }
+    }
+    const onMouseDown = (e) => {
+      e.preventDefault()
+      if (disabledRef.current) return
+      mouseDownRef.current = true
+      keys.forEach((k) => press(k))
+    }
+    const onMouseUp = () => {
+      if (!mouseDownRef.current) return
+      mouseDownRef.current = false
+      keys.forEach((k) => release(k))
+    }
+    const onContextMenu = (e) => e.preventDefault()
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchend', onTouchEnd, { passive: false })
+    el.addEventListener('touchcancel', onTouchEnd, { passive: false })
+    el.addEventListener('mousedown', onMouseDown)
+    el.addEventListener('contextmenu', onContextMenu)
+    window.addEventListener('mouseup', onMouseUp)
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+      el.removeEventListener('mousedown', onMouseDown)
+      el.removeEventListener('contextmenu', onContextMenu)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [press, release, enabled])
+
+  return ref
+}
+
+export default function Controls({ press, release, disabled, core, leftHanded }) {
   const isGb = core === 'gb'
   const isGba = core === 'gba'
 
@@ -92,6 +162,11 @@ export default function Controls({ press, release, disabled, core }) {
   const nativeSelectRef = useRef(null)
   const nativeStartRef = useRef(null)
 
+  const nativeUpLeftRef = useRef(null)
+  const nativeUpRightRef = useRef(null)
+  const nativeDownLeftRef = useRef(null)
+  const nativeDownRightRef = useRef(null)
+
   useNativeButton(nativeUpRef, 'DPAD_UP', isGb && !disabled)
   useNativeButton(nativeRightRef, 'DPAD_RIGHT', isGb && !disabled)
   useNativeButton(nativeDownRef, 'DPAD_DOWN', isGb && !disabled)
@@ -100,6 +175,10 @@ export default function Controls({ press, release, disabled, core }) {
   useNativeButton(nativeBRef, 'B', isGb && !disabled)
   useNativeButton(nativeSelectRef, 'SELECT', isGb && !disabled)
   useNativeButton(nativeStartRef, 'START', isGb && !disabled)
+  useNativeButtonMulti(nativeUpLeftRef, ['DPAD_UP', 'DPAD_LEFT'], isGb && !disabled)
+  useNativeButtonMulti(nativeUpRightRef, ['DPAD_UP', 'DPAD_RIGHT'], isGb && !disabled)
+  useNativeButtonMulti(nativeDownLeftRef, ['DPAD_DOWN', 'DPAD_LEFT'], isGb && !disabled)
+  useNativeButtonMulti(nativeDownRightRef, ['DPAD_DOWN', 'DPAD_RIGHT'], isGb && !disabled)
 
   // GBA: our own custom touch handling.
   const upRef = usePressable('UP', press, release, disabled, isGba)
@@ -112,9 +191,13 @@ export default function Controls({ press, release, disabled, core }) {
   const startRef = usePressable('START', press, release, disabled, isGba)
   const lRef = usePressable('L', press, release, disabled, isGba)
   const rRef = usePressable('R', press, release, disabled, isGba)
+  const upLeftRef = usePressableMulti(['UP', 'LEFT'], press, release, disabled, isGba)
+  const upRightRef = usePressableMulti(['UP', 'RIGHT'], press, release, disabled, isGba)
+  const downLeftRef = usePressableMulti(['DOWN', 'LEFT'], press, release, disabled, isGba)
+  const downRightRef = usePressableMulti(['DOWN', 'RIGHT'], press, release, disabled, isGba)
 
   return (
-    <div className="gb-controls">
+    <div className={`gb-controls ${leftHanded ? 'left-handed' : ''}`}>
       {isGba && (
         <div className="gb-shoulders">
           <button ref={lRef} className="shoulder-btn shoulder-l">L</button>
@@ -127,6 +210,10 @@ export default function Controls({ press, release, disabled, core }) {
         <button ref={isGba ? rightRef : nativeRightRef} className="dpad-btn dpad-right" aria-label="Droite" />
         <button ref={isGba ? downRef : nativeDownRef} className="dpad-btn dpad-down" aria-label="Bas" />
         <button ref={isGba ? leftRef : nativeLeftRef} className="dpad-btn dpad-left" aria-label="Gauche" />
+        <button ref={isGba ? upLeftRef : nativeUpLeftRef} className="dpad-diag dpad-diag-ul" aria-label="Haut-gauche" />
+        <button ref={isGba ? upRightRef : nativeUpRightRef} className="dpad-diag dpad-diag-ur" aria-label="Haut-droite" />
+        <button ref={isGba ? downLeftRef : nativeDownLeftRef} className="dpad-diag dpad-diag-dl" aria-label="Bas-gauche" />
+        <button ref={isGba ? downRightRef : nativeDownRightRef} className="dpad-diag dpad-diag-dr" aria-label="Bas-droite" />
         <div className="dpad-center" />
       </div>
 

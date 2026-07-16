@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Screen from './components/Screen'
 import Controls from './components/Controls'
 import Library from './components/Library'
+import AdminPanel, { loadSettings } from './components/AdminPanel'
 import { useWasmBoy } from './hooks/useWasmBoy'
 import { useGba } from './hooks/useGba'
 import { useJoypad } from './hooks/useJoypad'
@@ -12,12 +13,44 @@ function coreForFile(name) {
   return /\.gba$/i.test(name) ? 'gba' : 'gb'
 }
 
+const SKINS = ['grey', 'yellow', 'blue', 'green', 'berry', 'clear', 'orange']
+const LONG_PRESS_MS = 600
+
+// A press-and-hold helper for the two hidden buttons (power LED → shell
+// color, logo → library) — returns onPointerDown/Up/Leave handlers that
+// fire `onLongPress` only past LONG_PRESS_MS, so a normal tap is unaffected.
+function useLongPress(onLongPress) {
+  const timerRef = useRef(null)
+  const firedRef = useRef(false)
+
+  const start = () => {
+    firedRef.current = false
+    timerRef.current = setTimeout(() => {
+      firedRef.current = true
+      onLongPress()
+    }, LONG_PRESS_MS)
+  }
+  const cancel = () => {
+    clearTimeout(timerRef.current)
+  }
+
+  return {
+    onPointerDown: start,
+    onPointerUp: cancel,
+    onPointerLeave: cancel,
+    onContextMenu: (e) => e.preventDefault(),
+  }
+}
+
 export default function App() {
   const gbCanvasRef = useRef(null)
   const gbaCanvasRef = useRef(null)
   const [libraryOpen, setLibraryOpen] = useState(true)
   const [status, setStatus] = useState('')
   const [activeCore, setActiveCore] = useState(null)
+  const [skin, setSkin] = useState(() => localStorage.getItem('palama-gameb-skin') || 'grey')
+  const [adminOpen, setAdminOpen] = useState(false)
+  const [settings, setSettings] = useState(loadSettings)
 
   const gb = useWasmBoy(gbCanvasRef)
   const gba = useGba(gbaCanvasRef)
@@ -42,6 +75,16 @@ export default function App() {
     setStatus(msg)
     setTimeout(() => setStatus(''), 2000)
   }
+
+  const cycleSkin = () => {
+    const next = SKINS[(SKINS.indexOf(skin) + 1) % SKINS.length]
+    setSkin(next)
+    localStorage.setItem('palama-gameb-skin', next)
+    flash(`Coque : ${next === 'grey' ? 'DMG-01 classique' : next}`)
+  }
+
+  const powerLedPress = useLongPress(cycleSkin)
+  const logoPress = useLongPress(() => setLibraryOpen(true))
 
   const handleSelectRom = async (romMeta, url) => {
     const core = coreForFile(romMeta.name)
@@ -69,6 +112,13 @@ export default function App() {
     }
   }
 
+  const filterStyle = [
+    `brightness(${settings.brightness}%)`,
+    `contrast(${settings.contrast}%)`,
+    `saturate(${settings.saturation}%)`,
+    settings.sepiaRetro ? 'sepia(.4)' : '',
+  ].filter(Boolean).join(' ')
+
   return (
     <div className="app-shell">
       {libraryOpen && <div className="library-backdrop" onClick={() => setLibraryOpen(false)} />}
@@ -88,10 +138,10 @@ export default function App() {
           </button>
         )}
 
-        <div className="dmg-shell">
+        <div className={`dmg-shell skin-${skin}`}>
           <div className="dmg-top">
-            <div className="dmg-brand">PaLaMa <span>GameB</span></div>
-            <div className="dmg-screen-frame">
+            <div className="dmg-brand" {...logoPress}>PaLaMa <span>GameB</span></div>
+            <div className={`dmg-screen-frame ${settings.crtCurvature ? 'crt-curvature' : ''}`}>
               <Screen
                 gbCanvasRef={gbCanvasRef}
                 gbaCanvasRef={gbaCanvasRef}
@@ -99,16 +149,20 @@ export default function App() {
                 isReady={isReady}
                 error={error}
                 placeholderText={currentRom ? 'Chargement…' : 'Choisis une ROM dans la bibliothèque'}
+                filterStyle={filterStyle}
+                scanlines={settings.scanlines}
               />
             </div>
             <div className="dmg-indicator-row">
-              <span className={`power-led ${isReady ? 'on' : ''}`} />
+              <span className="power-led-hit" {...powerLedPress}>
+                <span className={`power-led ${isReady ? 'on' : ''}`} />
+              </span>
               <span className="dmg-model">{activeCore === 'gba' ? 'AGB-001' : 'DMG-01'}</span>
             </div>
           </div>
 
           <div className="dmg-body">
-            <Controls press={press} release={release} disabled={!isReady} core={activeCore} />
+            <Controls press={press} release={release} disabled={!isReady} core={activeCore} leftHanded={settings.leftHanded} />
 
             <div className="dmg-transport">
               <button onClick={togglePlay} disabled={!isReady}>{isPlaying ? 'Pause' : 'Play'}</button>
@@ -119,8 +173,14 @@ export default function App() {
           </div>
         </div>
 
+        <button className="admin-fab" onClick={() => setAdminOpen(true)} aria-label="Paramètres">⚙</button>
+
         {status && <div className="toast">{status}</div>}
       </main>
+
+      {adminOpen && (
+        <AdminPanel settings={settings} onChange={setSettings} onClose={() => setAdminOpen(false)} />
+      )}
     </div>
   )
 }
