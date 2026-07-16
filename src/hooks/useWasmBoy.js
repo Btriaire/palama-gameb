@@ -37,6 +37,17 @@ export function useWasmBoy(canvasRef) {
 
   useEffect(() => {
     const resync = () => {
+      if (isReadyRef.current && isPlayingRef.current) {
+        // iOS Safari can suspend the AudioContext mid-session (not only when
+        // backgrounded) — it's a known, somewhat unpredictable power-saving
+        // behavior. WasmBoy only resumes it once, inside play(), so if the
+        // context gets suspended again later nothing ever un-suspends it.
+        // Since WasmBoy paces its frame timing off the audio callback, a
+        // suspended context silently stalls the whole game while
+        // isPlaying() keeps reporting true — invisible to the check below.
+        // resumeAudioContext() is a cheap no-op when nothing is suspended.
+        WasmBoy.resumeAudioContext && WasmBoy.resumeAudioContext()
+      }
       if (document.visibilityState !== 'visible') return
       if (isReadyRef.current && isPlayingRef.current && WasmBoy.isPlaying && !WasmBoy.isPlaying()) {
         WasmBoy.play()
