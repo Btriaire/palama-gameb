@@ -21,6 +21,14 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef(null)
 
+  // Personal VPS library (/opt/roms/gameboy), gated by a private token.
+  const [libItems, setLibItems] = useState([])
+  const [libErr, setLibErr] = useState(null)
+  const [libLoading, setLibLoading] = useState(false)
+  const [libQuery, setLibQuery] = useState('')
+  const [tokenInput, setTokenInput] = useState('')
+  const [hasToken, setHasToken] = useState(() => !!api.getLibraryToken())
+
   const refresh = async () => {
     try {
       setRoms(await api.listRoms())
@@ -29,7 +37,54 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
     }
   }
 
+  const loadLibrary = async () => {
+    setLibLoading(true)
+    setLibErr(null)
+    try {
+      setLibItems(await api.listLibrary())
+    } catch (e) {
+      setLibErr(e.message)
+      if (/token/i.test(e.message)) setHasToken(false)
+    } finally {
+      setLibLoading(false)
+    }
+  }
+
   useEffect(() => { refresh() }, [])
+  useEffect(() => { if (hasToken) loadLibrary() }, [hasToken])
+
+  const saveToken = (e) => {
+    e.preventDefault()
+    const t = tokenInput.trim()
+    if (!t) return
+    api.setLibraryToken(t)
+    setHasToken(true)
+  }
+
+  const forgetToken = () => {
+    api.setLibraryToken('')
+    setLibItems([])
+    setLibErr(null)
+    setTokenInput('')
+    setHasToken(false)
+  }
+
+  const selectLibItem = async (item) => {
+    setBusy(true)
+    setErr(null)
+    try {
+      const file = await api.getLibraryFile(item.path, item.name)
+      onSelectRom({ id: `vps:${item.path}`, name: item.name, size: item.size }, file)
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const q = libQuery.trim().toLowerCase()
+  const filteredLib = q ? libItems.filter((i) => i.name.toLowerCase().includes(q)) : libItems
+  const shownLib = filteredLib.slice(0, 150)
 
   const uploadFile = async (file) => {
     if (!file) return
@@ -128,6 +183,70 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
           ))}
         </ul>
       )}
+
+      <div className="gb-lib-vps">
+        <div className="gb-lib-vps-head">
+          <h3>Ma bibliothèque VPS</h3>
+          {hasToken && (
+            <button className="gb-lib-forget" onClick={forgetToken} title="Oublier le token sur cet appareil">
+              Déconnecter
+            </button>
+          )}
+        </div>
+
+        {!hasToken ? (
+          <form className="gb-lib-token" onSubmit={saveToken}>
+            <p>Saisis ton token privé pour accéder à tes ROMs sur le VPS.</p>
+            <input
+              type="password"
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+              placeholder="Token privé"
+              autoComplete="off"
+            />
+            <button type="submit" disabled={!tokenInput.trim()}>Connecter</button>
+            {libErr && <p className="gb-error">{libErr}</p>}
+          </form>
+        ) : (
+          <>
+            <input
+              className="gb-lib-search"
+              type="search"
+              value={libQuery}
+              onChange={(e) => setLibQuery(e.target.value)}
+              placeholder={`Rechercher parmi ${libItems.length} ROMs…`}
+            />
+            {libErr && <p className="gb-error">{libErr}</p>}
+            {libLoading ? (
+              <p className="gb-lib-note">Chargement…</p>
+            ) : (
+              <>
+                <ul className="gb-rom-list">
+                  {shownLib.map((item) => (
+                    <li key={item.path} onClick={() => selectLibItem(item)}>
+                      <span className="rom-cartridge" style={{ background: colorFor(item.name) }}>
+                        {item.name.replace(/\.(gb|gbc|gba)$/i, '').slice(0, 2).toUpperCase()}
+                      </span>
+                      <span className="rom-info">
+                        <span className="rom-name">{item.name}</span>
+                        <span className="rom-meta">{formatSize(item.size)}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {filteredLib.length > shownLib.length && (
+                  <p className="gb-lib-note">
+                    {filteredLib.length - shownLib.length} de plus — affine ta recherche.
+                  </p>
+                )}
+                {!libLoading && filteredLib.length === 0 && (
+                  <p className="gb-lib-note">Aucune ROM trouvée.</p>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

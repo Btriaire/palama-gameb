@@ -152,6 +152,31 @@ body {
 }
 .rom-delete:hover { color: #ff8080; }
 
+/* --- Personal VPS library section --- */
+.gb-lib-vps { margin-top: 1rem; border-top: 1px solid #33323a; padding-top: .8rem; }
+.gb-lib-vps-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+.gb-lib-vps-head h3 { margin: 0; font-size: .8rem; color: #ddd; }
+.gb-lib-forget {
+  background: none; border: 1px solid #444; color: #999;
+  border-radius: 6px; font-size: .65rem; padding: .2rem .5rem; cursor: pointer;
+}
+.gb-lib-forget:hover { color: #ddd; border-color: #666; }
+.gb-lib-token { display: flex; flex-direction: column; gap: .5rem; }
+.gb-lib-token p { margin: 0; font-size: .72rem; color: #999; }
+.gb-lib-token input, .gb-lib-search {
+  width: 100%; box-sizing: border-box;
+  background: #26252c; border: 1px solid #3a3941; border-radius: 8px;
+  color: #eee; font-size: .8rem; padding: .5rem .6rem;
+}
+.gb-lib-token input:focus, .gb-lib-search:focus { outline: none; border-color: var(--ab-red); }
+.gb-lib-token button {
+  background: var(--ab-red); color: #fff; border: none; border-radius: 8px;
+  padding: .5rem; font-weight: 600; font-size: .78rem; cursor: pointer;
+}
+.gb-lib-token button:disabled { opacity: .5; cursor: default; }
+.gb-lib-search { margin-bottom: .5rem; }
+.gb-lib-note { color: #888; font-size: .68rem; margin: .5rem 0 0; text-align: center; }
+
 /* --- Stage --- */
 .console-stage {
   flex: 1;

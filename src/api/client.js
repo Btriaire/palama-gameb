@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3003'
+const LIB_TOKEN_KEY = 'palama-gameb-lib-token'
 
 async function request(path, options) {
   const res = await fetch(`${API_URL}${path}`, options)
@@ -12,6 +13,41 @@ async function request(path, options) {
 export const api = {
   romUrl(id) {
     return `${API_URL}/api/roms/${id}/file`
+  },
+
+  // --- Personal VPS library (/opt/roms/gameboy) ---
+  // Access is gated by a private token so the public site never exposes the
+  // folder. The token is passed as a header, never in the URL/query string.
+  getLibraryToken() {
+    try { return localStorage.getItem(LIB_TOKEN_KEY) || '' } catch { return '' }
+  },
+
+  setLibraryToken(token) {
+    try {
+      if (token) localStorage.setItem(LIB_TOKEN_KEY, token)
+      else localStorage.removeItem(LIB_TOKEN_KEY)
+    } catch { /* storage disabled — token just won't persist */ }
+  },
+
+  async listLibrary() {
+    const res = await fetch(`${API_URL}/api/library`, {
+      headers: { 'x-library-token': this.getLibraryToken() },
+    })
+    if (res.status === 401) throw new Error('Token invalide')
+    if (res.status === 503) throw new Error('Bibliothèque VPS désactivée côté serveur')
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+    return res.json()
+  },
+
+  // Fetch a library ROM as a File (auth header can't ride on a bare URL, so
+  // we fetch the bytes ourselves and hand a File to the emulator).
+  async getLibraryFile(relPath, name) {
+    const res = await fetch(`${API_URL}/api/library/file?path=${encodeURIComponent(relPath)}`, {
+      headers: { 'x-library-token': this.getLibraryToken() },
+    })
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+    const blob = await res.blob()
+    return new File([blob], name, { type: 'application/octet-stream' })
   },
 
   async listRoms() {
