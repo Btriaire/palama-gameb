@@ -24,48 +24,42 @@ export function useWasmBoy(canvasRef) {
   const [currentRom, setCurrentRom] = useState(null)
   const [error, setError] = useState(null)
 
-  // iOS suspends/kills WasmBoy's internal rAF loop while the tab is
-  // backgrounded (screen lock, app switch, Safari UI covering the page) —
-  // WasmBoy.isPlaying() then genuinely reports false, but nothing ever calls
-  // our pause(), so the UI still says "Pause" and looks like it should be
-  // running. Force a resume whenever the page becomes visible again — but
-  // only if the player didn't deliberately pause (isPlayingRef still true).
-  const isReadyRef = useRef(isReady)
-  isReadyRef.current = isReady
   const isPlayingRef = useRef(isPlaying)
   isPlayingRef.current = isPlaying
-  // saveState()/loadState() call WasmBoy's own pause() internally and await
-  // a round-trip with its worker, all while our React isPlaying state stays
-  // true (we only flip it after the whole save/load finishes). Without this
-  // guard the watchdog below sees isPlaying()===false mid-save and fires
-  // play() right into the middle of that round-trip. Skip the watchdog
-  // entirely while a save/load is in flight.
+  // saveState()/loadState()/pause() all await a round-trip with WasmBoy's
+  // worker. This ref lets the visibility-resume below know not to touch
+  // WasmBoy while one of those is in flight.
   const isBusyRef = useRef(false)
 
+  // When iOS brings the tab back to the foreground it may have suspended
+  // WasmBoy's internal loop while it was hidden. Resume once, ONLY on an
+  // actual visibility change — never on a background polling timer. A 1s
+  // setInterval used to do this and kept firing WasmBoy.play() in the
+  // background right as the user hit Pause / Sauver / Charger, racing those
+  // operations' own worker round-trips and freezing the whole app. A
+  // visibility change can't coincide with a button tap, so it's safe.
   useEffect(() => {
-    const resync = () => {
-      if (isBusyRef.current) return
+    const onVisible = () => {
       if (document.visibilityState !== 'visible') return
-      if (isReadyRef.current && isPlayingRef.current && WasmBoy.isPlaying && !WasmBoy.isPlaying()) {
-        WasmBoy.play()
-      }
+      if (isBusyRef.current || !isPlayingRef.current) return
+      if (WasmBoy.isPlaying && !WasmBoy.isPlaying()) WasmBoy.play()
     }
-    document.addEventListener('visibilitychange', resync)
-    const watchdog = setInterval(resync, 1000)
-    return () => {
-      document.removeEventListener('visibilitychange', resync)
-      clearInterval(watchdog)
-    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
-  // iOS starts every AudioContext suspended and only lets it resume from
-  // inside a real user-gesture handler. WasmBoy resumes it in play(), but a
-  // ROM loads through an async chain (fetch + config + loadROM) that has
-  // already lost the original tap's gesture context by the time play() runs
-  // — so the context stays suspended and there's no sound. Re-arm it on
-  // every tap: resumeAudioContext() is a cheap no-op once it's running.
+  // iOS starts the AudioContext suspended and only lets it resume from inside
+  // a real user-gesture handler. A ROM loads through an async chain that has
+  // lost the tap's gesture context by the time WasmBoy's play() tries to
+  // resume it, so unlock on the first tap — then stop listening, so we're
+  // NOT running audio code on every single subsequent button press (that
+  // per-tap version made the D-pad and Config buttons freeze).
   useEffect(() => {
-    const unlock = () => WasmBoy.resumeAudioContext && WasmBoy.resumeAudioContext()
+    const unlock = () => {
+      WasmBoy.resumeAudioContext && WasmBoy.resumeAudioContext()
+      document.removeEventListener('touchend', unlock)
+      document.removeEventListener('pointerup', unlock)
+    }
     document.addEventListener('touchend', unlock)
     document.addEventListener('pointerup', unlock)
     return () => {
