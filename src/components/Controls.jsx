@@ -30,6 +30,16 @@ function useDiagonalRelay(diagRef, targetRefs, enabled) {
     const el = diagRef.current
     if (!enabled || !el) return
 
+    // TOUCH ONLY — deliberately no mouse handling. An earlier version added
+    // a window 'mouseup' listener that re-dispatched a *bubbling* synthetic
+    // mouseup to the cardinal buttons; that synthetic event bubbled straight
+    // back up to window, re-triggered this very listener, and recursed —
+    // an exponential infinite loop that hard-froze the whole app. It fired
+    // whenever a real mouseup reached window, which on iOS is any tap on the
+    // empty shell *next to* a button (a tap on a button preventDefaults its
+    // touch, so no synthetic mouse events are generated — which is exactly
+    // why the freeze only happened tapping just beside a button). The
+    // diagonal pads are a touch feature; desktop can use the keyboard.
     const relay = (type) => (e) => {
       e.preventDefault()
       const isEnd = type === 'touchend' || type === 'touchcancel'
@@ -42,30 +52,18 @@ function useDiagonalRelay(diagRef, targetRefs, enabled) {
     }
     const onTouchStart = relay('touchstart')
     const onTouchEnd = relay('touchend')
-    const relayMouse = (type) => () => {
-      targetRefs.forEach((targetRef) => {
-        const target = targetRef.current
-        if (target) target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }))
-      })
-    }
-    const onMouseDown = relayMouse('mousedown')
-    const onMouseUp = relayMouse('mouseup')
     const onContextMenu = (e) => e.preventDefault()
 
     el.addEventListener('touchstart', onTouchStart, { passive: false })
     el.addEventListener('touchend', onTouchEnd, { passive: false })
     el.addEventListener('touchcancel', onTouchEnd, { passive: false })
-    el.addEventListener('mousedown', onMouseDown)
     el.addEventListener('contextmenu', onContextMenu)
-    window.addEventListener('mouseup', onMouseUp)
 
     return () => {
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchend', onTouchEnd)
       el.removeEventListener('touchcancel', onTouchEnd)
-      el.removeEventListener('mousedown', onMouseDown)
       el.removeEventListener('contextmenu', onContextMenu)
-      window.removeEventListener('mouseup', onMouseUp)
     }
   }, [enabled])
 }
