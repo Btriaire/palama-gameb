@@ -49,9 +49,19 @@ export function useWasmBoy(canvasRef) {
   isReadyRef.current = isReady
   const isPlayingRef = useRef(isPlaying)
   isPlayingRef.current = isPlaying
+  // saveState()/loadState() call WasmBoy's own pause() internally and await
+  // a PAUSE round-trip with its worker, all while our React isPlaying state
+  // stays true (we only flip it after the whole save/load finishes). The
+  // watchdog below saw WasmBoy.isPlaying() go false mid-save and "helpfully"
+  // fired play() into the worker while it was still mid-round-trip for the
+  // save — the PLAY message racing the expected PAUSE reply left saveState()
+  // waiting forever, freezing every single Sauver/Charger click. Skip the
+  // watchdog entirely while a save/load is in flight.
+  const isBusyRef = useRef(false)
 
   useEffect(() => {
     const resync = () => {
+      if (isBusyRef.current) return
       if (isReadyRef.current && isPlayingRef.current) {
         // iOS Safari can suspend the AudioContext mid-session (not only when
         // backgrounded) — it's a known, somewhat unpredictable power-saving
@@ -132,21 +142,31 @@ export function useWasmBoy(canvasRef) {
   // so it follows the player across devices, not just this browser's IndexedDB.
   const saveToCloud = useCallback(async (slot = 'auto') => {
     if (!currentRom) return
-    const wasPlaying = WasmBoy.isPlaying()
-    const state = await WasmBoy.saveState()
-    const payload = serializeState(state)
-    await api.putSave(currentRom.id, slot, payload)
-    if (wasPlaying) await WasmBoy.play()
-    return state
+    isBusyRef.current = true
+    try {
+      const wasPlaying = WasmBoy.isPlaying()
+      const state = await WasmBoy.saveState()
+      const payload = serializeState(state)
+      await api.putSave(currentRom.id, slot, payload)
+      if (wasPlaying) await WasmBoy.play()
+      return state
+    } finally {
+      isBusyRef.current = false
+    }
   }, [currentRom])
 
   const loadFromCloud = useCallback(async (slot = 'auto') => {
     if (!currentRom) return
-    const { data } = await api.getSave(currentRom.id, slot)
-    const state = deserializeState(data)
-    await WasmBoy.loadState(state)
-    await WasmBoy.play()
-    setIsPlaying(true)
+    isBusyRef.current = true
+    try {
+      const { data } = await api.getSave(currentRom.id, slot)
+      const state = deserializeState(data)
+      await WasmBoy.loadState(state)
+      await WasmBoy.play()
+      setIsPlaying(true)
+    } finally {
+      isBusyRef.current = false
+    }
   }, [currentRom])
 
   return {
