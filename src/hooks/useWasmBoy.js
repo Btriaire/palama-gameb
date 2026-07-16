@@ -3,29 +3,14 @@ import { WasmBoy } from '../wasmboyInstance'
 import { api } from '../api/client'
 import { serializeState, deserializeState } from '../utils/stateSerializer'
 
-// Matches VaporBoy's config (vaporboyOptions.config.js) — WasmBoy's own
-// README points to VaporBoy as the reference player for actually playing
-// games on mobile, as opposed to the plain debugger demo. Without these
-// batching/caching options WasmBoy defaults to per-sample/per-tile
-// postMessage traffic between the main thread and its worker, which a real
-// iPhone apparently can't sustain for more than a few seconds of real
-// gameplay (audio, image, everything stalls together) even though it looks
-// fine on desktop with no real CPU/audio load.
 const CONFIG = {
   headless: false,
   useGbcWhenOptional: true,
   isAudioEnabled: true,
   isGbcColorizationEnabled: true,
-  frameSkip: 1,
+  frameSkip: 0,
   gameboyFPSCap: 60,
   isTimersEnabled: true,
-  audioBatchProcessing: true,
-  timersBatchProcessing: false,
-  audioAccumulateSamples: true,
-  graphicsBatchProcessing: false,
-  graphicsDisableScanlineRendering: false,
-  tileRendering: true,
-  tileCaching: true,
 }
 
 // Module-level (not component-level) guard: WasmBoy is a page-wide singleton,
@@ -50,29 +35,16 @@ export function useWasmBoy(canvasRef) {
   const isPlayingRef = useRef(isPlaying)
   isPlayingRef.current = isPlaying
   // saveState()/loadState() call WasmBoy's own pause() internally and await
-  // a PAUSE round-trip with its worker, all while our React isPlaying state
-  // stays true (we only flip it after the whole save/load finishes). The
-  // watchdog below saw WasmBoy.isPlaying() go false mid-save and "helpfully"
-  // fired play() into the worker while it was still mid-round-trip for the
-  // save — the PLAY message racing the expected PAUSE reply left saveState()
-  // waiting forever, freezing every single Sauver/Charger click. Skip the
-  // watchdog entirely while a save/load is in flight.
+  // a round-trip with its worker, all while our React isPlaying state stays
+  // true (we only flip it after the whole save/load finishes). Without this
+  // guard the watchdog below sees isPlaying()===false mid-save and fires
+  // play() right into the middle of that round-trip. Skip the watchdog
+  // entirely while a save/load is in flight.
   const isBusyRef = useRef(false)
 
   useEffect(() => {
     const resync = () => {
       if (isBusyRef.current) return
-      if (isReadyRef.current && isPlayingRef.current) {
-        // iOS Safari can suspend the AudioContext mid-session (not only when
-        // backgrounded) — it's a known, somewhat unpredictable power-saving
-        // behavior. WasmBoy only resumes it once, inside play(), so if the
-        // context gets suspended again later nothing ever un-suspends it.
-        // Since WasmBoy paces its frame timing off the audio callback, a
-        // suspended context silently stalls the whole game while
-        // isPlaying() keeps reporting true — invisible to the check below.
-        // resumeAudioContext() is a cheap no-op when nothing is suspended.
-        WasmBoy.resumeAudioContext && WasmBoy.resumeAudioContext()
-      }
       if (document.visibilityState !== 'visible') return
       if (isReadyRef.current && isPlayingRef.current && WasmBoy.isPlaying && !WasmBoy.isPlaying()) {
         WasmBoy.play()
