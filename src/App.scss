@@ -298,10 +298,14 @@ body {
   box-shadow: inset 0 1px 2px rgba(255,255,255,.15), 0 2px 3px rgba(0,0,0,.4);
 }
 .dpad-btn:active { background: #232228; }
-.dpad-up::before, .dpad-down::before { content: ''; position: absolute; left: -8px; right: -8px; }
+/* Enlarged hit area extends ONLY along the arm's own axis (never sideways)
+   — sideways growth used to reach into the corners where the diagonal pads
+   now live, so a tap near an edge could steal the wrong direction (or a
+   diagonal) instead of the cardinal one you meant. */
+.dpad-up::before, .dpad-down::before { content: ''; position: absolute; left: 0; right: 0; }
 .dpad-up::before { top: -8px; bottom: 0; }
 .dpad-down::before { bottom: -8px; top: 0; }
-.dpad-left::before, .dpad-right::before { content: ''; position: absolute; top: -8px; bottom: -8px; }
+.dpad-left::before, .dpad-right::before { content: ''; position: absolute; top: 0; bottom: 0; }
 .dpad-left::before { left: -8px; right: 0; }
 .dpad-right::before { right: -8px; left: 0; }
 
@@ -413,6 +417,16 @@ body {
   background: repeating-linear-gradient(
     to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 1px, rgba(0,0,0,.18) 2px, rgba(0,0,0,.18) 3px
   );
+}
+.gb-fps-hud {
+  position: absolute; top: 4px; left: 6px;
+  font-family: 'SF Mono', Menlo, monospace;
+  font-size: .65rem;
+  color: #6f6;
+  background: rgba(0,0,0,.5);
+  padding: 1px 4px;
+  border-radius: 3px;
+  pointer-events: none;
 }
 .dmg-screen-frame.crt-curvature {
   border-radius: 26px 26px 46px 26px;

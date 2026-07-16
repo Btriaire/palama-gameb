@@ -86,6 +86,20 @@ export default function App() {
   const powerLedPress = useLongPress(cycleSkin)
   const logoPress = useLongPress(() => setLibraryOpen(true))
 
+  // Turbo speed + FPS HUD only apply to WasmBoy (GB/GBC) — gba-kit has no
+  // equivalent speed-multiplier API.
+  useEffect(() => {
+    if (activeCore !== 'gb' || !isReady) return
+    gb.setSpeed(settings.turboSpeed)
+  }, [activeCore, isReady, settings.turboSpeed])
+
+  const [fps, setFps] = useState(0)
+  useEffect(() => {
+    if (activeCore !== 'gb' || !isReady || !settings.debugHud) return
+    const id = setInterval(() => setFps(Math.round(gb.getFPS())), 500)
+    return () => clearInterval(id)
+  }, [activeCore, isReady, settings.debugHud])
+
   const handleSelectRom = async (romMeta, url) => {
     const core = coreForFile(romMeta.name)
     setActiveCore(core)
@@ -116,7 +130,7 @@ export default function App() {
     `brightness(${settings.brightness}%)`,
     `contrast(${settings.contrast}%)`,
     `saturate(${settings.saturation}%)`,
-    settings.sepiaRetro ? 'sepia(.4)' : '',
+    settings.sepiaRetro ? 'sepia(.75) hue-rotate(-8deg)' : '',
   ].filter(Boolean).join(' ')
 
   return (
@@ -151,6 +165,8 @@ export default function App() {
                 placeholderText={currentRom ? 'Chargement…' : 'Choisis une ROM dans la bibliothèque'}
                 filterStyle={filterStyle}
                 scanlines={settings.scanlines}
+                pixelSharp={settings.pixelSharp}
+                fps={activeCore === 'gb' && settings.debugHud ? fps : null}
               />
             </div>
             <div className="dmg-indicator-row">

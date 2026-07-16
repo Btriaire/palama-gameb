@@ -96,6 +96,12 @@ export function useWasmBoy(canvasRef) {
     else await play()
   }, [play, pause])
 
+  const setSpeed = useCallback((multiplier) => {
+    WasmBoy.setSpeed(multiplier)
+  }, [])
+
+  const getFPS = useCallback(() => WasmBoy.getFPS(), [])
+
   // Cloud save: capture WasmBoy's internal state and push it to the VPS
   // so it follows the player across devices, not just this browser's IndexedDB.
   const saveToCloud = useCallback(async (slot = 'auto') => {
@@ -129,5 +135,7 @@ export function useWasmBoy(canvasRef) {
     togglePlay,
     saveToCloud,
     loadFromCloud,
+    setSpeed,
+    getFPS,
   }
 }
