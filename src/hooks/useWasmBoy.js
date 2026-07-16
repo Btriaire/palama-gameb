@@ -58,6 +58,22 @@ export function useWasmBoy(canvasRef) {
     }
   }, [])
 
+  // iOS starts every AudioContext suspended and only lets it resume from
+  // inside a real user-gesture handler. WasmBoy resumes it in play(), but a
+  // ROM loads through an async chain (fetch + config + loadROM) that has
+  // already lost the original tap's gesture context by the time play() runs
+  // — so the context stays suspended and there's no sound. Re-arm it on
+  // every tap: resumeAudioContext() is a cheap no-op once it's running.
+  useEffect(() => {
+    const unlock = () => WasmBoy.resumeAudioContext && WasmBoy.resumeAudioContext()
+    document.addEventListener('touchend', unlock)
+    document.addEventListener('pointerup', unlock)
+    return () => {
+      document.removeEventListener('touchend', unlock)
+      document.removeEventListener('pointerup', unlock)
+    }
+  }, [])
+
   useEffect(() => {
     if (!canvasRef.current || wasmBoyConfigPromise) return
     // Use WasmBoy's own built-in keyboard/touch input system (ResponsiveGamepad)
@@ -84,14 +100,36 @@ export function useWasmBoy(canvasRef) {
     }
   }, [])
 
+  // Both play() and pause() flip isPlayingRef SYNCHRONOUSLY (not just the
+  // React state, which only updates after the await) and hold isBusyRef for
+  // the whole async op. That way the 1s watchdog can never see a transient
+  // mismatch mid-transition and "helpfully" fire the opposite call into the
+  // middle of an in-flight worker round-trip — which is exactly what froze
+  // the whole app when you hit Pause (WasmBoy.pause() cancels the render
+  // loop and awaits a worker reply; a stray play() racing it deadlocked
+  // both). resumeAudioContext must be called from a user gesture on iOS, so
+  // we also nudge it here when play() runs off a button tap.
   const play = useCallback(async () => {
-    await WasmBoy.play()
+    isBusyRef.current = true
+    isPlayingRef.current = true
     setIsPlaying(true)
+    try {
+      WasmBoy.resumeAudioContext && WasmBoy.resumeAudioContext()
+      await WasmBoy.play()
+    } finally {
+      isBusyRef.current = false
+    }
   }, [])
 
   const pause = useCallback(async () => {
-    await WasmBoy.pause()
+    isBusyRef.current = true
+    isPlayingRef.current = false
     setIsPlaying(false)
+    try {
+      await WasmBoy.pause()
+    } finally {
+      isBusyRef.current = false
+    }
   }, [])
 
   const reset = useCallback(async () => {
