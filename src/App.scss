@@ -174,7 +174,11 @@ body {
   padding: .5rem; font-weight: 600; font-size: .78rem; cursor: pointer;
 }
 .gb-lib-token button:disabled { opacity: .5; cursor: default; }
-.gb-lib-search { margin-bottom: .5rem; }
+.gb-lib-search {
+  margin-bottom: .5rem;
+  /* Stay reachable while the (long) results list scrolls under it. */
+  position: sticky; top: -.6rem; z-index: 1;
+}
 .gb-lib-note { color: #888; font-size: .68rem; margin: .5rem 0 0; text-align: center; }
 
 /* --- Stage --- */

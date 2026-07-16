@@ -84,7 +84,9 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
 
   const q = libQuery.trim().toLowerCase()
   const filteredLib = q ? libItems.filter((i) => i.name.toLowerCase().includes(q)) : libItems
-  const shownLib = filteredLib.slice(0, 150)
+  // No query → show only a short preview so the search box isn't buried under
+  // a 1200-item list (which made it unreachable). Searching → up to 150.
+  const shownLib = filteredLib.slice(0, q ? 150 : 24)
 
   const uploadFile = async (file) => {
     if (!file) return
@@ -236,7 +238,9 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
                 </ul>
                 {filteredLib.length > shownLib.length && (
                   <p className="gb-lib-note">
-                    {filteredLib.length - shownLib.length} de plus — affine ta recherche.
+                    {q
+                      ? `${filteredLib.length - shownLib.length} de plus — affine ta recherche.`
+                      : `Tape le nom d'un jeu pour chercher parmi ${libItems.length} ROMs.`}
                   </p>
                 )}
                 {!libLoading && filteredLib.length === 0 && (
