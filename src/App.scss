@@ -163,10 +163,13 @@ body {
 }
 .rom-delete:hover { color: #ff8080; }
 
-/* --- Personal VPS library section --- */
-.gb-lib-vps { margin-top: 1rem; border-top: 1px solid #33323a; padding-top: .8rem; }
+/* --- Personal VPS library section (first: it's the main collection) --- */
 .gb-lib-vps-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
 .gb-lib-vps-head h3 { margin: 0; font-size: .8rem; color: #ddd; }
+
+/* --- Local upload section (secondary, below the VPS library) --- */
+.gb-lib-local { margin-top: 1.2rem; border-top: 1px solid #33323a; padding-top: .8rem; }
+.gb-lib-local h3 { margin: 0 0 .5rem; font-size: .8rem; color: #ddd; }
 .gb-lib-forget {
   background: none; border: 1px solid #444; color: #999;
   border-radius: 6px; font-size: .65rem; padding: .2rem .5rem; cursor: pointer;

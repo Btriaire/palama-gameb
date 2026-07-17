@@ -181,58 +181,8 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
         <button className="gb-library-close" onClick={onClose} aria-label="Fermer">×</button>
       </div>
 
-      <button
-        className={`gb-dropzone ${dragOver ? 'drag-over' : ''} ${busy ? 'busy' : ''}`}
-        onClick={() => fileInputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        disabled={busy}
-      >
-        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6">
-          <path d="M12 4v11m0 0-4-4m4 4 4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span>{busy ? 'Envoi en cours…' : 'Ajouter une ROM'}</span>
-        <small>.gb, .gbc ou .gba — appuie ou dépose ici</small>
-      </button>
-      <input ref={fileInputRef} type="file" accept=".gb,.gbc,.gba" hidden onChange={handleFile} />
-
-      {err && <p className="gb-error">{err}</p>}
-
-      {roms.length === 0 ? (
-        <div className="gb-library-empty">
-          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <rect x="6" y="2" width="12" height="20" rx="2" />
-            <rect x="9" y="6" width="6" height="4" rx="1" />
-            <line x1="9" y1="15" x2="15" y2="15" strokeLinecap="round" />
-          </svg>
-          <p>Ta bibliothèque est vide.<br />Ajoute une ROM pour commencer à jouer.</p>
-        </div>
-      ) : (
-        <ul className="gb-rom-list">
-          {roms.map((rom) => (
-            <li
-              key={rom.id}
-              className={rom.id === currentRomId ? 'active' : ''}
-              onClick={() => onSelectRom(rom, api.romUrl(rom.id))}
-            >
-              <span className="rom-cartridge" style={{ background: colorFor(rom.name) }}>
-                {rom.name.replace(/\.(gb|gbc|gba)$/i, '').slice(0, 2).toUpperCase()}
-              </span>
-              <span className="rom-info">
-                <span className="rom-name">{rom.name}</span>
-                <span className="rom-meta">{formatSize(rom.size)}</span>
-              </span>
-              <button className="rom-delete" onClick={(e) => handleDelete(rom.id, e)} aria-label="Supprimer">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
+      {/* The VPS collection comes first — it's the main library. Uploading a
+          one-off ROM is the secondary path, so it sits below. */}
       <div className="gb-lib-vps">
         <div className="gb-lib-vps-head">
           <h3>Ma bibliothèque VPS</h3>
@@ -307,6 +257,52 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
               </>
             )}
           </>
+        )}
+      </div>
+
+      <div className="gb-lib-local">
+        <h3>Ajouter une ROM</h3>
+        <button
+          className={`gb-dropzone ${dragOver ? 'drag-over' : ''} ${busy ? 'busy' : ''}`}
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          disabled={busy}
+        >
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M12 4v11m0 0-4-4m4 4 4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>{busy ? 'Envoi en cours…' : 'Ajouter une ROM'}</span>
+          <small>.gb, .gbc ou .gba — appuie ou dépose ici</small>
+        </button>
+        <input ref={fileInputRef} type="file" accept=".gb,.gbc,.gba" hidden onChange={handleFile} />
+
+        {err && <p className="gb-error">{err}</p>}
+
+        {roms.length > 0 && (
+          <ul className="gb-rom-list">
+            {roms.map((rom) => (
+              <li
+                key={rom.id}
+                className={rom.id === currentRomId ? 'active' : ''}
+                onClick={() => onSelectRom(rom, api.romUrl(rom.id))}
+              >
+                <span className="rom-cartridge" style={{ background: colorFor(rom.name) }}>
+                  {rom.name.replace(/\.(gb|gbc|gba)$/i, '').slice(0, 2).toUpperCase()}
+                </span>
+                <span className="rom-info">
+                  <span className="rom-name">{rom.name}</span>
+                  <span className="rom-meta">{formatSize(rom.size)}</span>
+                </span>
+                <button className="rom-delete" onClick={(e) => handleDelete(rom.id, e)} aria-label="Supprimer">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
