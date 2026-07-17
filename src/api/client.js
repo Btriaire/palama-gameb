@@ -29,8 +29,19 @@ export const api = {
     } catch { /* storage disabled — token just won't persist */ }
   },
 
-  async listLibrary() {
-    const res = await fetch(`${API_URL}/api/library`, {
+  // [{ id, label, count }] — one per console, for the library tabs.
+  async listSystems() {
+    const res = await fetch(`${API_URL}/api/library/systems`, {
+      headers: { 'x-library-token': this.getLibraryToken() },
+    })
+    if (res.status === 401) throw new Error('Token invalide')
+    if (res.status === 503) throw new Error('Bibliothèque VPS désactivée côté serveur')
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+    return res.json()
+  },
+
+  async listLibrary(system = 'gb') {
+    const res = await fetch(`${API_URL}/api/library?system=${encodeURIComponent(system)}`, {
       headers: { 'x-library-token': this.getLibraryToken() },
     })
     if (res.status === 401) throw new Error('Token invalide')
@@ -42,11 +53,12 @@ export const api = {
   // Box art thumbnail as an object URL, or null when this ROM has no art.
   // An <img src> can't carry the auth header, so we fetch the bytes and wrap
   // them — callers must revokeObjectURL when done.
-  async getLibraryArt(relPath) {
+  async getLibraryArt(system, relPath) {
     try {
-      const res = await fetch(`${API_URL}/api/library/art?path=${encodeURIComponent(relPath)}`, {
-        headers: { 'x-library-token': this.getLibraryToken() },
-      })
+      const res = await fetch(
+        `${API_URL}/api/library/art?system=${encodeURIComponent(system)}&path=${encodeURIComponent(relPath)}`,
+        { headers: { 'x-library-token': this.getLibraryToken() } },
+      )
       if (!res.ok) return null
       return URL.createObjectURL(await res.blob())
     } catch {
@@ -56,10 +68,11 @@ export const api = {
 
   // Fetch a library ROM as a File (auth header can't ride on a bare URL, so
   // we fetch the bytes ourselves and hand a File to the emulator).
-  async getLibraryFile(relPath, name) {
-    const res = await fetch(`${API_URL}/api/library/file?path=${encodeURIComponent(relPath)}`, {
-      headers: { 'x-library-token': this.getLibraryToken() },
-    })
+  async getLibraryFile(system, relPath, name) {
+    const res = await fetch(
+      `${API_URL}/api/library/file?system=${encodeURIComponent(system)}&path=${encodeURIComponent(relPath)}`,
+      { headers: { 'x-library-token': this.getLibraryToken() } },
+    )
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
     const blob = await res.blob()
     return new File([blob], name, { type: 'application/octet-stream' })

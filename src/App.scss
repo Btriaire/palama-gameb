@@ -190,6 +190,16 @@ body {
   /* Stay reachable while the (long) results list scrolls under it. */
   position: sticky; top: -.6rem; z-index: 1;
 }
+.gb-lib-tabs { display: flex; gap: .3rem; margin-bottom: .5rem; }
+.gb-lib-tab {
+  flex: 1;
+  background: #2c2b32; border: 1px solid #3a3941; border-radius: 8px;
+  color: #bbb; font-size: .7rem; font-weight: 700; padding: .35rem .2rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: .3rem;
+}
+.gb-lib-tab span { color: #777; font-weight: 500; font-size: .62rem; }
+.gb-lib-tab.active { background: var(--ab-red); border-color: var(--ab-red); color: #fff; }
+.gb-lib-tab.active span { color: rgba(255,255,255,.75); }
 .gb-lib-note { color: #888; font-size: .68rem; margin: .5rem 0 0; text-align: center; }
 
 /* --- Stage --- */

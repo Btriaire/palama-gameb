@@ -16,13 +16,13 @@ function colorFor(name) {
 
 // Box art for a VPS library item, falling back to the coloured cartridge for
 // the ~11% of ROMs libretro has no cover for.
-function RomArt({ item }) {
+function RomArt({ system, item }) {
   const [src, setSrc] = useState(null)
 
   useEffect(() => {
     let cancelled = false
     let url = null
-    api.getLibraryArt(item.path).then((objectUrl) => {
+    api.getLibraryArt(system, item.path).then((objectUrl) => {
       if (cancelled) {
         if (objectUrl) URL.revokeObjectURL(objectUrl)
         return
@@ -34,7 +34,7 @@ function RomArt({ item }) {
       cancelled = true
       if (url) URL.revokeObjectURL(url)
     }
-  }, [item.path])
+  }, [system, item.path])
 
   if (!src) {
     return (
@@ -53,7 +53,9 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef(null)
 
-  // Personal VPS library (/opt/roms/gameboy), gated by a private token.
+  // Personal VPS library, gated by a private token. One folder per console.
+  const [systems, setSystems] = useState([])
+  const [libSystem, setLibSystem] = useState('gb')
   const [libItems, setLibItems] = useState([])
   const [libErr, setLibErr] = useState(null)
   const [libLoading, setLibLoading] = useState(false)
@@ -69,21 +71,34 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
     }
   }
 
-  const loadLibrary = async () => {
+  useEffect(() => { refresh() }, [])
+
+  useEffect(() => {
+    if (!hasToken) return
+    api.listSystems()
+      .then(setSystems)
+      .catch((e) => {
+        setLibErr(e.message)
+        if (/token/i.test(e.message)) setHasToken(false)
+      })
+  }, [hasToken])
+
+  useEffect(() => {
+    if (!hasToken) return
+    let cancelled = false
     setLibLoading(true)
     setLibErr(null)
-    try {
-      setLibItems(await api.listLibrary())
-    } catch (e) {
-      setLibErr(e.message)
-      if (/token/i.test(e.message)) setHasToken(false)
-    } finally {
-      setLibLoading(false)
-    }
-  }
-
-  useEffect(() => { refresh() }, [])
-  useEffect(() => { if (hasToken) loadLibrary() }, [hasToken])
+    setLibQuery('')
+    api.listLibrary(libSystem)
+      .then((items) => { if (!cancelled) setLibItems(items) })
+      .catch((e) => {
+        if (cancelled) return
+        setLibErr(e.message)
+        if (/token/i.test(e.message)) setHasToken(false)
+      })
+      .finally(() => { if (!cancelled) setLibLoading(false) })
+    return () => { cancelled = true }
+  }, [hasToken, libSystem])
 
   const saveToken = (e) => {
     e.preventDefault()
@@ -105,8 +120,8 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
     setBusy(true)
     setErr(null)
     try {
-      const file = await api.getLibraryFile(item.path, item.name)
-      onSelectRom({ id: `vps:${item.path}`, name: item.name, size: item.size }, file)
+      const file = await api.getLibraryFile(libSystem, item.path, item.name)
+      onSelectRom({ id: `vps:${libSystem}:${item.path}`, name: item.name, size: item.size }, file)
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -243,6 +258,19 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
           </form>
         ) : (
           <>
+            {systems.length > 1 && (
+              <div className="gb-lib-tabs">
+                {systems.map((s) => (
+                  <button
+                    key={s.id}
+                    className={`gb-lib-tab ${libSystem === s.id ? 'active' : ''}`}
+                    onClick={() => setLibSystem(s.id)}
+                  >
+                    {s.id.toUpperCase()} <span>{s.count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <input
               className="gb-lib-search"
               type="search"
@@ -258,7 +286,7 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
                 <ul className="gb-rom-list">
                   {shownLib.map((item) => (
                     <li key={item.path} onClick={() => selectLibItem(item)}>
-                      <RomArt item={item} />
+                      <RomArt system={libSystem} item={item} />
                       <span className="rom-info">
                         <span className="rom-name">{item.name}</span>
                         <span className="rom-meta">{formatSize(item.size)}</span>
