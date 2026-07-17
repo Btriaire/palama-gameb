@@ -14,6 +14,38 @@ function colorFor(name) {
   return `hsl(${hash % 360}, 55%, 55%)`
 }
 
+// Box art for a VPS library item, falling back to the coloured cartridge for
+// the ~11% of ROMs libretro has no cover for.
+function RomArt({ item }) {
+  const [src, setSrc] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    let url = null
+    api.getLibraryArt(item.path).then((objectUrl) => {
+      if (cancelled) {
+        if (objectUrl) URL.revokeObjectURL(objectUrl)
+        return
+      }
+      url = objectUrl
+      setSrc(objectUrl)
+    })
+    return () => {
+      cancelled = true
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [item.path])
+
+  if (!src) {
+    return (
+      <span className="rom-cartridge rom-cartridge-lg" style={{ background: colorFor(item.name) }}>
+        {item.name.replace(/\.(gb|gbc|gba)$/i, '').slice(0, 2).toUpperCase()}
+      </span>
+    )
+  }
+  return <img className="rom-art" src={src} alt="" loading="lazy" />
+}
+
 export default function Library({ onSelectRom, currentRomId, onClose }) {
   const [roms, setRoms] = useState([])
   const [busy, setBusy] = useState(false)
@@ -226,9 +258,7 @@ export default function Library({ onSelectRom, currentRomId, onClose }) {
                 <ul className="gb-rom-list">
                   {shownLib.map((item) => (
                     <li key={item.path} onClick={() => selectLibItem(item)}>
-                      <span className="rom-cartridge" style={{ background: colorFor(item.name) }}>
-                        {item.name.replace(/\.(gb|gbc|gba)$/i, '').slice(0, 2).toUpperCase()}
-                      </span>
+                      <RomArt item={item} />
                       <span className="rom-info">
                         <span className="rom-name">{item.name}</span>
                         <span className="rom-meta">{formatSize(item.size)}</span>

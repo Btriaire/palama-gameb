@@ -142,6 +142,17 @@ body {
   display: flex; align-items: center; justify-content: center;
   color: rgba(0,0,0,.55); font-weight: 800; font-size: .65rem;
 }
+/* Box art — bigger than the plain cartridge chip so covers are actually
+   recognisable before picking a game. */
+.rom-art {
+  flex: none;
+  width: 44px; height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #1c1b21;
+}
+.rom-cartridge-lg { width: 44px; height: 44px; border-radius: 6px; font-size: .75rem; }
+
 .rom-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .rom-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .78rem; }
 .rom-meta { color: #888; font-size: .65rem; }
